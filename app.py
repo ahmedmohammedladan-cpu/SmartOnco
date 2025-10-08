@@ -262,10 +262,13 @@ def clustering_lc():
     return render_template("clustering.html", ari=ari, plot_url=plot_url)
 
 # ---------------- PROSTATE ----------------
-@app.route("/prostate")
+@app.route('/prostate')
 def prostate_page():
-    return render_template("prostate.html", features_prostate=features_prostate, demo_values_prostate=demo_values_prostate)
-
+    return render_template(
+        "prostate.html",
+        features_pc=features_prostate,
+        demo_values_pc=demo_values_prostate
+    )
 @app.route("/predict_prostate", methods=["POST"])
 def predict_prostate():
     # build dataframe from the 15 inputs
