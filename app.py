@@ -8,6 +8,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, adjusted_rand_score
 import matplotlib.pyplot as plt
 import io, base64
+import os
 
 app = Flask(__name__)
 
@@ -15,16 +16,9 @@ app = Flask(__name__)
 # BREAST CANCER SECTION
 # ==================================================
 selected_features_bc = [
-    "worst radius",
-    "mean concave points",
-    "worst perimeter",
-    "mean concavity",
-    "worst concave points",
-    "mean radius",
-    "worst area",
-    "mean perimeter",
-    "mean texture",
-    "worst smoothness"
+    "worst radius", "mean concave points", "worst perimeter", "mean concavity",
+    "worst concave points", "mean radius", "worst area", "mean perimeter",
+    "mean texture", "worst smoothness"
 ]
 
 data_bc = load_breast_cancer()
@@ -79,8 +73,6 @@ X_pc = data_pc.drop(columns=["Early_Detection"], errors='ignore')
 y_pc = data_pc["Early_Detection"]
 
 X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(X_pc, y_pc, test_size=0.3, random_state=42)
-
-# Load pre-trained model
 model_pc = joblib.load("prostate_cancer_model.pkl")
 
 demo_values_pc = X_test_pc.iloc[0].tolist()
@@ -101,8 +93,7 @@ def home():
 # ---------------- BREAST ----------------
 @app.route("/predict_bc", methods=["POST"])
 def predict_bc():
-    n = len(selected_features_bc)
-    feature_vals = [float(request.form.get(f"feature_bc{i+1}")) for i in range(n)]
+    feature_vals = [float(request.form.get(f"feature_bc{i+1}")) for i in range(len(selected_features_bc))]
     df = pd.DataFrame([feature_vals], columns=selected_features_bc)
     pred = model_bc.predict(df)[0]
     proba = model_bc.predict_proba(df)[0][0]
@@ -146,8 +137,7 @@ def lung_page():
 
 @app.route("/predict_lc", methods=["POST"])
 def predict_lc():
-    n = len(selected_features_lc)
-    feature_vals = [float(request.form.get(f"feature_lc{i+1}")) for i in range(n)]
+    feature_vals = [float(request.form.get(f"feature_lc{i+1}")) for i in range(len(selected_features_lc))]
     df = pd.DataFrame([feature_vals], columns=selected_features_lc)
     pred = model_lc.predict(df)[0]
     proba = model_lc.predict_proba(df)[0][1]
@@ -191,8 +181,7 @@ def prostate_page():
 
 @app.route("/predict_pc", methods=["POST"])
 def predict_pc():
-    n = len(selected_features_pc)
-    feature_vals = [float(request.form.get(f"feature_pc{i+1}")) for i in range(n)]
+    feature_vals = [float(request.form.get(f"feature_pc{i+1}")) for i in range(len(selected_features_pc))]
     df = pd.DataFrame([feature_vals], columns=selected_features_pc)
 
     pred = model_pc.predict(df)[0]
@@ -211,20 +200,8 @@ def selftest_pc():
     y_pred = model_pc.predict(X_test_pc)
     acc = accuracy_score(y_test_pc, y_pred)
     cm = confusion_matrix(y_test_pc, y_pred).tolist()
-    report = classification_report(
-        y_test_pc,
-        y_pred,
-        target_names=["No Cancer", "Cancer"],
-        output_dict=True
-    )
-
-    return render_template(
-        "selftest.html",
-        accuracy=acc,
-        cm=cm,
-        target_names=["No Cancer", "Cancer"],
-        report=report
-    )
+    report = classification_report(y_test_pc, y_pred, target_names=["No Cancer", "Cancer"], output_dict=True)
+    return render_template("selftest.html", accuracy=acc, cm=cm, target_names=["No Cancer", "Cancer"], report=report)
 
 @app.route("/clustering_pc")
 def clustering_pc():
@@ -243,9 +220,8 @@ def clustering_pc():
     return render_template("clustering.html", ari=ari, plot_url=plot_url)
 
 # ==================================================
-import os
-
+# RUN APP
+# ==================================================
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))  # Use Render's port
-    app.run(host="0.0.0.0", port=port)
-
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=True)
