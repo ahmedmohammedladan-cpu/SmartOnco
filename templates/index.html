@@ -10,9 +10,17 @@
 
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-  <div class="container">
-    <a class="navbar-brand fw-bold" href="/">SmartOnco</a>
-    <div class="d-flex flex-wrap">
+  <div class="container d-flex align-items-center">
+    <!-- ✅ Logo + Brand -->
+    <a class="navbar-brand fw-bold d-flex align-items-center" href="/">
+      <img src="{{ url_for('static', filename='ahmedmohammedladan-cpu SmartOnco LOGO.png') }}" 
+           alt="SmartOnco Logo" 
+           width="45" height="45" 
+           class="me-2 rounded-circle border border-light">
+      SmartOnco
+    </a>
+
+    <div class="d-flex flex-wrap ms-auto">
       <!-- Breast Cancer -->
       <a href="/" class="btn btn-light me-2 mb-2">Breast Cancer Page</a>
       <a href="/selftest_bc" class="btn btn-outline-light me-2 mb-2">Breast Cancer Self-Test</a>
@@ -29,6 +37,8 @@
     </div>
   </div>
 </nav>
+
+
 
 <!-- Main Content -->
 <div class="container my-5">
@@ -123,5 +133,6 @@
 
 </body>
 </html>
+
 
 
