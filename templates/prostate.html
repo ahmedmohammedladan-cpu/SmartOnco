@@ -65,14 +65,25 @@
 
 <!-- Script -->
 <script>
-  document.getElementById("fill-demo").addEventListener("click", () => {
-    const demo = {{ demo_values_prostate | tojson }};
-    demo.forEach((val, idx) => {
-      const input = document.querySelector(`input[name="feature_prostate${idx+1}"]`);
-      if (input) input.value = val;
-    });
-    alert("Demo patient values (Prostate Cancer) filled.");
-  });
+  // This converts the Python dict into JavaScript object
+  const demo = {{ demo_values_prostate | tojson }};
+
+  function loadDemoProstate() {
+    // Loop through all demo keys and fill corresponding inputs
+    for (const [key, value] of Object.entries(demo)) {
+      const input = document.querySelector(`[name^="feature_prostate"]`);
+      if (input) {
+        // Find the input matching the feature index by name or label text
+        const inputs = document.querySelectorAll('input[name^="feature_prostate"]');
+        inputs.forEach((inp) => {
+          if (inp.placeholder.toLowerCase().includes(key.toLowerCase()) ||
+              inp.name.toLowerCase().includes(key.toLowerCase())) {
+            inp.value = value;
+          }
+        });
+      }
+    }
+  }
 </script>
 
 </body>
