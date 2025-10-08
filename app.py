@@ -262,30 +262,40 @@ def clustering_lc():
     return render_template("clustering.html", ari=ari, plot_url=plot_url)
 
 # ---------------- PROSTATE ----------------
+# Define globally once
+features_prostate = [
+    "Age",
+    "PSA_Level",
+    "Biopsy_Result",
+    "Tumor_Size",
+    "Cancer_Stage",
+    "Blood_Pressure",
+    "Cholesterol_Level",
+    "Family_History",
+    "Smoking_History",
+    "Alcohol_Consumption",
+    "Back_Pain",
+    "Fatigue_Level"
+]
+
+demo_values_prostate = {
+    "Age": 55,
+    "PSA_Level": 7.8,
+    "Biopsy_Result": 1,
+    "Tumor_Size": 2.3,
+    "Cancer_Stage": 2,
+    "Blood_Pressure": 130,
+    "Cholesterol_Level": 180,
+    "Family_History": 1,
+    "Smoking_History": 0,
+    "Alcohol_Consumption": 1,
+    "Back_Pain": 1,
+    "Fatigue_Level": 3
+}
+
+
 @app.route('/prostate')
 def prostate_page():
-    # Define your features and demo values here
-    features_prostate = [
-        "Age", "PSA_Level", "Biopsy_Result", "Tumor_Size", "Cancer_Stage",
-        "Blood_Pressure", "Cholesterol_Level", "Family_History", "Smoking_History",
-        "Alcohol_Consumption", "Back_Pain", "Fatigue_Level"
-    ]
-
-    demo_values_prostate = {
-        "Age": 55,
-        "PSA_Level": 7.8,
-        "Biopsy_Result": 1,
-        "Tumor_Size": 2.3,
-        "Cancer_Stage": 2,
-        "Blood_Pressure": 130,
-        "Cholesterol_Level": 180,
-        "Family_History": 1,
-        "Smoking_History": 0,
-        "Alcohol_Consumption": 1,
-        "Back_Pain": 1,
-        "Fatigue_Level": 3
-    }
-
     return render_template(
         "prostate.html",
         features_prostate=features_prostate,
@@ -296,29 +306,7 @@ def prostate_page():
 @app.route("/predict_prostate", methods=["POST"])
 def predict_prostate():
     try:
-        # Same features used in the form
-        features_prostate = [
-            "Age", "PSA_Level", "Biopsy_Result", "Tumor_Size", "Cancer_Stage",
-            "Blood_Pressure", "Cholesterol_Level", "Family_History", "Smoking_History",
-            "Alcohol_Consumption", "Back_Pain", "Fatigue_Level"
-        ]
-
-        demo_values_prostate = {
-            "Age": 55,
-            "PSA_Level": 7.8,
-            "Biopsy_Result": 1,
-            "Tumor_Size": 2.3,
-            "Cancer_Stage": 2,
-            "Blood_Pressure": 130,
-            "Cholesterol_Level": 180,
-            "Family_History": 1,
-            "Smoking_History": 0,
-            "Alcohol_Consumption": 1,
-            "Back_Pain": 1,
-            "Fatigue_Level": 3
-        }
-
-        # Collect form inputs
+        # Collect input safely
         values = []
         for i in range(len(features_prostate)):
             val = request.form.get(f"feature_prostate{i+1}")
@@ -330,10 +318,9 @@ def predict_prostate():
                 except:
                     values.append(0)
 
-        # Convert to DataFrame using the same columns used for training
         df = pd.DataFrame([values], columns=features_prostate)
 
-        # ✅ Align with model’s expected features
+        # Align model feature names if available
         if hasattr(model_prostate, "feature_names_in_"):
             expected_cols = list(model_prostate.feature_names_in_)
             for col in expected_cols:
@@ -341,9 +328,8 @@ def predict_prostate():
                     df[col] = 0
             df = df[expected_cols]
 
-        # Make prediction
+        # Predict
         pred = model_prostate.predict(df)[0]
-
         try:
             proba = model_prostate.predict_proba(df)[0][1]
         except Exception:
@@ -366,11 +352,11 @@ def predict_prostate():
         prediction_text = f"Prediction: {label} — {risk}{prob_text}"
 
         return render_template(
-    "prostate.html",
-    features_prostate=features_prostate,
-    demo_values_prostate=demo_values_prostate,
-    prediction_text=prediction_text
-)
+            "prostate.html",
+            features_prostate=features_prostate,
+            demo_values_prostate=demo_values_prostate,
+            prediction_text=prediction_text
+        )
 
     except Exception as e:
         return render_template(
