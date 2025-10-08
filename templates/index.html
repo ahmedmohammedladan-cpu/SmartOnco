@@ -16,15 +16,16 @@
       <!-- Breast Cancer -->
       <a href="/" class="btn btn-light me-2 mb-2">Breast Cancer Page</a>
       <a href="/selftest_bc" class="btn btn-outline-light me-2 mb-2">Breast Cancer Self-Test</a>
-      <a href="/clustering_bc" class="btn btn-outline-light me-2 mb-2">Breast  Cancer Clustering</a>
+      <a href="/clustering_bc" class="btn btn-outline-light me-2 mb-2">Breast Cancer Clustering</a>
 
       <!-- Lung Cancer -->
       <a href="/lung" class="btn btn-outline-light me-2 mb-2">Lung Cancer Page</a>
-      
 
       <!-- Prostate Cancer -->
       <a href="/prostate" class="btn btn-outline-light me-2 mb-2">Prostate Cancer Page</a>
-      
+
+      <!-- About -->
+      <button class="btn btn-outline-light me-2 mb-2" data-bs-toggle="modal" data-bs-target="#aboutModal">About</button>
     </div>
   </div>
 </nav>
@@ -68,12 +69,44 @@
   </div>
 </div>
 
+<!-- About Modal -->
+<div class="modal fade" id="aboutModal" tabindex="-1" aria-labelledby="aboutModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="aboutModalLabel">About SmartOnco</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body p-4">
+        <p class="text-muted">
+          <b>SmartOnco</b> is an AI-powered Cancer Diagnosis System developed to assist in detecting
+          different types of cancer such as <b>Breast, Lung, and Prostate cancer</b> using advanced
+          machine learning models. It helps medical practitioners and patients get early insights into
+          possible risks through predictive analysis.
+        </p>
+        <p class="text-muted">
+          This project was built by <b>Ahmed Mohammed Ladan</b>, a Computer Science student at
+          <b>Gombe State University</b>, as part of a research initiative to integrate
+          <b>Artificial Intelligence</b> into healthcare systems for better diagnostic support.
+        </p>
+        <p class="text-muted mb-0">
+          Contact: <b>ahmedmohammedladan@example.com</b>
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-primary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Footer -->
 <footer class="bg-primary text-white text-center py-3 mt-5">
   <small>&copy; 2025 SmartOnco — AI Cancer Diagnosis System</small>
 </footer>
 
-<!-- Script -->
+<!-- Scripts -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>
   // Fill Demo Data
   document.getElementById("fill-demo").addEventListener("click", () => {
