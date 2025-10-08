@@ -61,27 +61,63 @@ kmeans_lc = KMeans(n_clusters=2, random_state=42, n_init=10)
 kmeans_lc.fit(X_scaled_lc)
 
 # ==================================================
-# PROSTATE CANCER SECTION
+# PROSTATE CANCER SECTION (Updated 15 features)
 # ==================================================
-data_pc = pd.read_csv("prostate_cancer.csv")
+features_prostate = [
+    "Age",
+    "Family_History",
+    "Race_African_Ancestry",
+    "PSA_Level",
+    "DRE_Result",
+    "Difficulty_Urinating",
+    "Weak_Urine_Flow",
+    "Blood_in_Urine",
+    "Pelvic_Pain",
+    "Erectile_Dysfunction",
+    "BMI",
+    "Smoking_History",
+    "Hypertension",
+    "Diabetes",
+    "Genetic_Risk_Factors"
+]
 
-# Encode categorical columns
-for col in data_pc.select_dtypes(include=['object']).columns:
-    data_pc[col] = data_pc[col].astype('category').cat.codes
+# Placeholder demo values
+demo_values_prostate = [60, 1, 1, 8.5, 1, 0, 1, 0, 0, 1, 27.5, 0, 1, 0, 1]
 
-X_pc = data_pc.drop(columns=["Early_Detection"], errors='ignore')
-y_pc = data_pc["Early_Detection"]
+# Load pre-trained prostate cancer model and scaler
+model_prostate = joblib.load("prostate_cancer_model.pkl")
+scaler_prostate = StandardScaler()
 
-X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(X_pc, y_pc, test_size=0.3, random_state=42)
-model_pc = joblib.load("prostate_cancer_model.pkl")
+@app.route('/prostate')
+def prostate_page():
+    return render_template('prostate.html', features_prostate=features_prostate, demo_values_prostate=demo_values_prostate)
 
-demo_values_pc = X_test_pc.iloc[0].tolist()
-selected_features_pc = list(X_pc.columns)
-
-scaler_pc = StandardScaler()
-X_scaled_pc = scaler_pc.fit_transform(X_pc)
-kmeans_pc = KMeans(n_clusters=2, random_state=42, n_init=10)
-kmeans_pc.fit(X_scaled_pc)
+@app.route('/predict_prostate', methods=['POST'])
+def predict_prostate():
+    try:
+        values = [float(request.form[f'feature_prostate{i+1}']) for i in range(len(features_prostate))]
+        arr = np.array([values])
+        scaled = scaler_prostate.fit_transform(arr)  # Fit-transform for now
+        pred = model_prostate.predict(scaled)[0]
+        if pred == 0:
+            result = "Low risk of Prostate Cancer"
+        elif pred == 1:
+            result = "Moderate risk of Prostate Cancer"
+        else:
+            result = "High risk of Prostate Cancer"
+        return render_template(
+            'prostate.html',
+            prediction_text=result,
+            features_prostate=features_prostate,
+            demo_values_prostate=demo_values_prostate
+        )
+    except Exception as e:
+        return render_template(
+            'prostate.html',
+            prediction_text=f"Error: {str(e)}",
+            features_prostate=features_prostate,
+            demo_values_prostate=demo_values_prostate
+        )
 
 # ==================================================
 # ROUTES
@@ -99,9 +135,12 @@ def predict_bc():
     proba = model_bc.predict_proba(df)[0][0]
     label = "Malignant (Cancerous)" if pred == 0 else "Benign (Non-cancerous)"
 
-    if proba >= 0.80: risk = "High risk"
-    elif proba >= 0.50: risk = "Moderate risk"
-    else: risk = "Low risk"
+    if proba >= 0.80:
+        risk = "High risk"
+    elif proba >= 0.50:
+        risk = "Moderate risk"
+    else:
+        risk = "Low risk"
 
     prediction_text = f"Prediction: {label} — {risk} ({proba*100:.1f}% malignant probability)"
     return render_template("index.html", features_bc=selected_features_bc, demo_values_bc=demo_values_bc, prediction_text=prediction_text)
@@ -143,81 +182,15 @@ def predict_lc():
     proba = model_lc.predict_proba(df)[0][1]
     label = "Lung Cancer Detected" if pred == 1 else "No Lung Cancer"
 
-    if proba >= 0.80: risk = "High risk"
-    elif proba >= 0.50: risk = "Moderate risk"
-    else: risk = "Low risk"
+    if proba >= 0.80:
+        risk = "High risk"
+    elif proba >= 0.50:
+        risk = "Moderate risk"
+    else:
+        risk = "Low risk"
 
     prediction_text = f"Prediction: {label} — {risk} ({proba*100:.1f}% probability)"
     return render_template("lung_cancer.html", features_lc=selected_features_lc, demo_values_lc=demo_values_lc, prediction_text=prediction_text)
-
-@app.route("/selftest_lc")
-def selftest_lc():
-    y_pred = model_lc.predict(X_test_lc)
-    acc = accuracy_score(y_test_lc, y_pred)
-    cm = confusion_matrix(y_test_lc, y_pred).tolist()
-    report = classification_report(y_test_lc, y_pred, target_names=["No Cancer", "Cancer"], output_dict=True)
-    return render_template("selftest.html", accuracy=acc, cm=cm, target_names=["No Cancer", "Cancer"], report=report)
-
-@app.route("/clustering_lc")
-def clustering_lc():
-    labels = kmeans_lc.predict(scaler_lc.transform(X_lc))
-    ari = adjusted_rand_score(y_lc, labels)
-    fig, ax = plt.subplots()
-    ax.scatter(X_scaled_lc[:, 0], X_scaled_lc[:, 1], c=labels, cmap="viridis", alpha=0.6)
-    ax.set_title("Lung Cancer - KMeans Clustering (first 2 features)")
-    plt.xlabel(selected_features_lc[0])
-    plt.ylabel(selected_features_lc[1])
-    img = io.BytesIO()
-    plt.savefig(img, format="png")
-    plt.close(fig)
-    img.seek(0)
-    plot_url = base64.b64encode(img.getvalue()).decode()
-    return render_template("clustering.html", ari=ari, plot_url=plot_url)
-
-# ---------------- PROSTATE ----------------
-@app.route("/prostate")
-def prostate_page():
-    return render_template("prostate.html", features_pc=selected_features_pc, demo_values_pc=demo_values_pc)
-
-@app.route("/predict_pc", methods=["POST"])
-def predict_pc():
-    feature_vals = [float(request.form.get(f"feature_pc{i+1}")) for i in range(len(selected_features_pc))]
-    df = pd.DataFrame([feature_vals], columns=selected_features_pc)
-
-    pred = model_pc.predict(df)[0]
-    proba = model_pc.predict_proba(df)[0][1]
-    label = "Prostate Cancer Detected" if pred == 1 else "No Prostate Cancer"
-
-    if proba >= 0.80: risk = "High risk"
-    elif proba >= 0.50: risk = "Moderate risk"
-    else: risk = "Low risk"
-
-    prediction_text = f"Prediction: {label} — {risk} ({proba*100:.1f}% probability)"
-    return render_template("prostate.html", features_pc=selected_features_pc, demo_values_pc=demo_values_pc, prediction_text=prediction_text)
-
-@app.route("/selftest_pc")
-def selftest_pc():
-    y_pred = model_pc.predict(X_test_pc)
-    acc = accuracy_score(y_test_pc, y_pred)
-    cm = confusion_matrix(y_test_pc, y_pred).tolist()
-    report = classification_report(y_test_pc, y_pred, target_names=["No Cancer", "Cancer"], output_dict=True)
-    return render_template("selftest.html", accuracy=acc, cm=cm, target_names=["No Cancer", "Cancer"], report=report)
-
-@app.route("/clustering_pc")
-def clustering_pc():
-    labels = kmeans_pc.predict(scaler_pc.transform(X_pc))
-    ari = adjusted_rand_score(y_pc, labels)
-    fig, ax = plt.subplots()
-    ax.scatter(X_scaled_pc[:, 0], X_scaled_pc[:, 1], c=labels, cmap="viridis", alpha=0.6)
-    ax.set_title("Prostate Cancer - KMeans Clustering (first 2 features)")
-    plt.xlabel(selected_features_pc[0])
-    plt.ylabel(selected_features_pc[1])
-    img = io.BytesIO()
-    plt.savefig(img, format="png")
-    plt.close(fig)
-    img.seek(0)
-    plot_url = base64.b64encode(img.getvalue()).decode()
-    return render_template("clustering.html", ari=ari, plot_url=plot_url)
 
 # ==================================================
 # RUN APP
