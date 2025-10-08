@@ -243,5 +243,9 @@ def clustering_pc():
     return render_template("clustering.html", ari=ari, plot_url=plot_url)
 
 # ==================================================
+import os
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Use Render's port
+    app.run(host="0.0.0.0", port=port)
+
