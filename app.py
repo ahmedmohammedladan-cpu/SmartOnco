@@ -303,6 +303,7 @@ def prostate_page():
     )
 
 
+
 @app.route("/predict_prostate", methods=["POST"])
 def predict_prostate():
     try:
@@ -467,3 +468,4 @@ def clustering_pc():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
