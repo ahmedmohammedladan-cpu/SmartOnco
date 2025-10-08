@@ -271,53 +271,41 @@ def prostate_page():
     )
 @app.route("/predict_prostate", methods=["POST"])
 def predict_prostate():
-    # build dataframe from the 15 inputs
     try:
-        values = [request.form.get(f"feature_prostate{i+1}") for i in range(len(features_prostate))]
-        # convert numeric-like strings to float where possible, else keep as-is
-        parsed = []
-        for v in values:
-            if v is None or v == "":
-                parsed.append(np.nan)
+        # Collect form inputs
+        values = []
+        for i in range(len(features_prostate)):
+            val = request.form.get(f"feature_prostate{i+1}")
+            if val is None or val.strip() == "":
+                values.append(0)
             else:
                 try:
-                    parsed.append(float(v))
-                except Exception:
-                    parsed.append(v)  # categorical/string value
+                    values.append(float(val))
+                except:
+                    values.append(0)
 
-        df = pd.DataFrame([parsed], columns=features_prostate)
+        # Convert to DataFrame using the same columns used for training
+        df = pd.DataFrame([values], columns=features_prostate)
 
-        # Try scaling only if we have a scaler fitted (scaler_pc)
-        if scaler_pc is not None and hasattr(scaler_pc, "mean_"):
-            # if scaler was fit on original data, try to transform matching columns
-            try:
-                scaled = scaler_pc.transform(df.select_dtypes(include=[np.number]))
-                # If scaler returns fewer columns than model expects, skip scaling and warn
-                # We'll attempt to predict with df (non-scaled) if scaling fails
-                # Replace numeric columns with scaled array columns before predict if lengths match
-                num_cols = df.select_dtypes(include=[np.number]).columns.tolist()
-                if scaled.shape[1] == len(num_cols):
-                    df[num_cols] = scaled
-            except Exception:
-                pass  # leave df unchanged
+        # ✅ Fix: Align columns with model’s expected features if model has .feature_names_in_
+        if hasattr(model_prostate, "feature_names_in_"):
+            expected_cols = list(model_prostate.feature_names_in_)
+            # Add any missing columns (fill with 0)
+            for col in expected_cols:
+                if col not in df.columns:
+                    df[col] = 0
+            # Keep only the model's expected columns (correct order)
+            df = df[expected_cols]
 
-        # Defensive: ensure model exists
-        if model_prostate is None:
-            raise RuntimeError("Prostate model not available on server.")
-
+        # Predict safely
         pred = model_prostate.predict(df)[0]
-        # Try predict_proba if available
         try:
-            proba_arr = model_prostate.predict_proba(df)[0]
-            # try to find probability for 'positive' class if length==2
-            if len(proba_arr) >= 2:
-                proba = proba_arr[1]
-            else:
-                proba = proba_arr[0]
+            proba = model_prostate.predict_proba(df)[0][1]
         except Exception:
             proba = None
 
         label = "Prostate Cancer Detected" if pred == 1 else "No Prostate Cancer"
+
         if proba is not None:
             if proba >= 0.80:
                 risk = "High risk"
@@ -331,10 +319,86 @@ def predict_prostate():
             prob_text = ""
 
         prediction_text = f"Prediction: {label} — {risk}{prob_text}"
-        return render_template("prostate.html", features_prostate=features_prostate, demo_values_prostate=demo_values_prostate, prediction_text=prediction_text)
+
+        return render_template(
+            "prostate.html",
+            features_prostate=features_prostate,
+            demo_values_prostate=demo_values_prostate,
+            prediction_text=prediction_text
+        )
+
     except Exception as e:
-        # return friendly error in template rather than crash
-        return render_template("prostate.html", features_prostate=features_prostate, demo_values_prostate=demo_values_prostate, prediction_text=f"Error: {str(e)}")
+        return render_template(
+            "prostate.html",
+            features_prostate=features_prostate,
+            demo_values_prostate=demo_values_prostate,
+            prediction_text=f"Error: {e}"
+        )@app.route("/predict_prostate", methods=["POST"])
+def predict_prostate():
+    try:
+        # Collect form inputs
+        values = []
+        for i in range(len(features_prostate)):
+            val = request.form.get(f"feature_prostate{i+1}")
+            if val is None or val.strip() == "":
+                values.append(0)
+            else:
+                try:
+                    values.append(float(val))
+                except:
+                    values.append(0)
+
+        # Convert to DataFrame using the same columns used for training
+        df = pd.DataFrame([values], columns=features_prostate)
+
+        # ✅ Fix: Align columns with model’s expected features if model has .feature_names_in_
+        if hasattr(model_prostate, "feature_names_in_"):
+            expected_cols = list(model_prostate.feature_names_in_)
+            # Add any missing columns (fill with 0)
+            for col in expected_cols:
+                if col not in df.columns:
+                    df[col] = 0
+            # Keep only the model's expected columns (correct order)
+            df = df[expected_cols]
+
+        # Predict safely
+        pred = model_prostate.predict(df)[0]
+        try:
+            proba = model_prostate.predict_proba(df)[0][1]
+        except Exception:
+            proba = None
+
+        label = "Prostate Cancer Detected" if pred == 1 else "No Prostate Cancer"
+
+        if proba is not None:
+            if proba >= 0.80:
+                risk = "High risk"
+            elif proba >= 0.50:
+                risk = "Moderate risk"
+            else:
+                risk = "Low risk"
+            prob_text = f" ({proba*100:.1f}% probability)"
+        else:
+            risk = ""
+            prob_text = ""
+
+        prediction_text = f"Prediction: {label} — {risk}{prob_text}"
+
+        return render_template(
+            "prostate.html",
+            features_prostate=features_prostate,
+            demo_values_prostate=demo_values_prostate,
+            prediction_text=prediction_text
+        )
+
+    except Exception as e:
+        return render_template(
+            "prostate.html",
+            features_prostate=features_prostate,
+            demo_values_prostate=demo_values_prostate,
+            prediction_text=f"Error: {e}"
+        )
+
 
 @app.route("/selftest_pc")
 def selftest_pc():
