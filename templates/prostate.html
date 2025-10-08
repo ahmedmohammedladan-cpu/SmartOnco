@@ -68,26 +68,22 @@
 
 <!-- Script -->
 <script>
-  // This converts the Python dict into JavaScript object
-  const demo = {{ demo_values_prostate | tojson }};
+  document.addEventListener("DOMContentLoaded", function() {
+    const demo = {{ demo_values_prostate | tojson | safe }};
+    const features = {{ features_prostate | tojson | safe }};
 
-  function loadDemoProstate() {
-    // Loop through all demo keys and fill corresponding inputs
-    for (const [key, value] of Object.entries(demo)) {
-      const input = document.querySelector(`[name^="feature_prostate"]`);
-      if (input) {
-        // Find the input matching the feature index by name or label text
-        const inputs = document.querySelectorAll('input[name^="feature_prostate"]');
-        inputs.forEach((inp) => {
-          if (inp.placeholder.toLowerCase().includes(key.toLowerCase()) ||
-              inp.name.toLowerCase().includes(key.toLowerCase())) {
-            inp.value = value;
-          }
-        });
-      }
-    }
-  }
+    window.loadDemoProstate = function() {
+      const inputs = document.querySelectorAll('input[name^="feature_prostate"]');
+      inputs.forEach((input, i) => {
+        const feature = features[i];
+        if (demo.hasOwnProperty(feature)) {
+          input.value = demo[feature];
+        }
+      });
+    };
+  });
 </script>
+
 
 </body>
 </html>
