@@ -366,11 +366,11 @@ def predict_prostate():
         prediction_text = f"Prediction: {label} — {risk}{prob_text}"
 
         return render_template(
-            "prostate.html",
-            features_prostate=features_prostate,
-            demo_values_prostate=demo_values_prostate,
-            prediction_text=prediction_text
-        )
+    "prostate.html",
+    features_prostate=features_prostate,
+    demo_values_prostate=demo_values_prostate,
+    prediction_text=prediction_text
+)
 
     except Exception as e:
         return render_template(
