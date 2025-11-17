@@ -6,6 +6,7 @@ from sklearn.tree import DecisionTreeClassifier
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, adjusted_rand_score
+from imblearn.over_sampling import SMOTE  # ADD THIS IMPORT
 import matplotlib.pyplot as plt
 import io, base64
 import os
@@ -40,10 +41,8 @@ kmeans_bc.fit(X_scaled_bc)
 # ==================================================
 # LUNG CANCER SECTION (unchanged)
 # ==================================================
-# Make sure file exists in repo root: "survey lung cancer.csv"
 try:
     data_lc = pd.read_csv("survey lung cancer.csv")
-    # map gender and labels - tolerate missing columns gracefully
     if "GENDER" in data_lc.columns:
         data_lc["GENDER"] = data_lc["GENDER"].map({"M": 1, "F": 0})
     if "LUNG_CANCER" in data_lc.columns:
@@ -63,7 +62,6 @@ except Exception:
     y_lc = None
     X_train_lc = X_test_lc = y_train_lc = y_test_lc = None
 
-# Load or train a simple lung model if data is present; else create a fallback
 if X_train_lc is not None and y_train_lc is not None:
     model_lc = DecisionTreeClassifier(random_state=42)
     model_lc.fit(X_train_lc, y_train_lc)
@@ -75,7 +73,6 @@ if X_train_lc is not None and y_train_lc is not None:
     kmeans_lc = KMeans(n_clusters=2, random_state=42, n_init=10)
     kmeans_lc.fit(X_scaled_lc)
 else:
-    # placeholders to avoid template errors
     model_lc = None
     demo_values_lc = []
     selected_features_lc = []
@@ -83,30 +80,39 @@ else:
     kmeans_lc = None
 
 # ==================================================
-# PROSTATE CANCER SECTION (Updated 15 features)
+# PROSTATE CANCER SECTION - FIXED WITH BALANCING
 # ==================================================
 features_prostate = [
     "Age",
-    "Family_History",
-    "Race_African_Ancestry",
     "PSA_Level",
-    "DRE_Result",
-    "Difficulty_Urinating",
-    "Weak_Urine_Flow",
-    "Blood_in_Urine",
-    "Pelvic_Pain",
-    "Erectile_Dysfunction",
-    "BMI",
+    "Biopsy_Result",
+    "Tumor_Size",
+    "Cancer_Stage",
+    "Blood_Pressure",
+    "Cholesterol_Level",
+    "Family_History",
     "Smoking_History",
-    "Hypertension",
-    "Diabetes",
-    "Genetic_Risk_Factors"
+    "Alcohol_Consumption",
+    "Back_Pain",
+    "Fatigue_Level"
 ]
 
-# Placeholder demo values (match features_prostate order)
-demo_values_prostate = [60, 1, 1, 8.5, 1, 0, 1, 0, 0, 1, 27.5, 0, 1, 0, 1]
+demo_values_prostate = {
+    "Age": 55,
+    "PSA_Level": 7.8,
+    "Biopsy_Result": 1,
+    "Tumor_Size": 2.3,
+    "Cancer_Stage": 2,
+    "Blood_Pressure": 130,
+    "Cholesterol_Level": 180,
+    "Family_History": 1,
+    "Smoking_History": 0,
+    "Alcohol_Consumption": 1,
+    "Back_Pain": 1,
+    "Fatigue_Level": 3
+}
 
-# Try to load dataset & pretrained model if available
+# Initialize variables
 data_pc = None
 X_pc = None
 y_pc = None
@@ -115,50 +121,68 @@ scaler_pc = None
 kmeans_pc = None
 model_prostate = None
 
-# attempt to load training data if present (optional)
+# Load and balance prostate cancer data
 if os.path.exists("prostate_cancer.csv"):
     try:
         data_pc = pd.read_csv("prostate_cancer.csv")
-        # perform light preprocessing: encode categorical
+        
+        # Perform light preprocessing
         for col in data_pc.select_dtypes(include=['object']).columns:
             data_pc[col] = data_pc[col].astype('category').cat.codes
 
-        # if Early_Detection exists, use it as target
         if "Early_Detection" in data_pc.columns:
             X_pc = data_pc.drop(columns=["Early_Detection"], errors='ignore')
             y_pc = data_pc["Early_Detection"]
-            X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(X_pc, y_pc, test_size=0.3, random_state=42)
+            
+            # ✅ FIX: APPLY SMOTE TO BALANCE THE DATA
+            print(f"Before SMOTE - Class distribution: {np.bincount(y_pc)}")
+            smote = SMOTE(random_state=42)
+            X_balanced, y_balanced = smote.fit_resample(X_pc, y_pc)
+            print(f"After SMOTE - Class distribution: {np.bincount(y_balanced)}")
+            
+            # Split the balanced data
+            X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(
+                X_balanced, y_balanced, test_size=0.3, random_state=42
+            )
+            
             scaler_pc = StandardScaler()
-            X_scaled_pc = scaler_pc.fit_transform(X_pc)
+            X_scaled_pc = scaler_pc.fit_transform(X_balanced)
             kmeans_pc = KMeans(n_clusters=2, random_state=42, n_init=10)
             kmeans_pc.fit(X_scaled_pc)
-    except Exception:
+    except Exception as e:
+        print(f"Error loading prostate data: {e}")
         data_pc = None
 
-# attempt to load an existing pre-trained prostate model if file exists
+# Load or train prostate model with BALANCED DATA
 if os.path.exists("prostate_cancer_model.pkl"):
     try:
         model_prostate = joblib.load("prostate_cancer_model.pkl")
     except Exception:
         model_prostate = None
 
-# If model_prostate was not loaded but dataset available, train a quick model as fallback (optional)
+# ✅ FIX: Train with BALANCED CLASS WEIGHTS if no model exists
 if model_prostate is None and X_train_pc is not None and y_train_pc is not None:
     try:
-        model_prostate = DecisionTreeClassifier(random_state=42)
+        # Use class weights to handle any remaining imbalance
+        model_prostate = DecisionTreeClassifier(
+            random_state=42,
+            class_weight='balanced'  # ✅ FIX: Add class balancing
+        )
         model_prostate.fit(X_train_pc, y_train_pc)
         joblib.dump(model_prostate, "prostate_cancer_model.pkl")
-    except Exception:
+        print("Prostate cancer model trained with balanced class weights")
+    except Exception as e:
+        print(f"Error training prostate model: {e}")
         model_prostate = None
 
 # ==================================================
-# ROUTES
+# ROUTES (Mostly unchanged, but prostate prediction fixed)
 # ==================================================
 @app.route("/")
 def home():
     return render_template("index.html", features_bc=selected_features_bc, demo_values_bc=demo_values_bc)
 
-# ---------------- BREAST ----------------
+# ---------------- BREAST CANCER ROUTES (unchanged) ----------------
 @app.route("/predict_bc", methods=["POST"])
 def predict_bc():
     feature_vals = [float(request.form.get(f"feature_bc{i+1}")) for i in range(len(selected_features_bc))]
@@ -201,14 +225,13 @@ def clustering_bc():
     plot_url = base64.b64encode(img.getvalue()).decode()
     return render_template("clustering.html", ari=ari, plot_url=plot_url)
 
-# ---------------- LUNG ----------------
+# ---------------- LUNG CANCER ROUTES (unchanged) ----------------
 @app.route("/lung")
 def lung_page():
     return render_template("lung_cancer.html", features_lc=selected_features_lc, demo_values_lc=demo_values_lc)
 
 @app.route("/predict_lc", methods=["POST"])
 def predict_lc():
-    # defensive: ensure model exists
     if model_lc is None:
         return render_template("lung_cancer.html", features_lc=selected_features_lc, demo_values_lc=demo_values_lc,
                                prediction_text="Lung model not available on server.")
@@ -261,39 +284,7 @@ def clustering_lc():
     plot_url = base64.b64encode(img.getvalue()).decode()
     return render_template("clustering.html", ari=ari, plot_url=plot_url)
 
-# ---------------- PROSTATE ----------------
-# Define globally once
-features_prostate = [
-    "Age",
-    "PSA_Level",
-    "Biopsy_Result",
-    "Tumor_Size",
-    "Cancer_Stage",
-    "Blood_Pressure",
-    "Cholesterol_Level",
-    "Family_History",
-    "Smoking_History",
-    "Alcohol_Consumption",
-    "Back_Pain",
-    "Fatigue_Level"
-]
-
-demo_values_prostate = {
-    "Age": 55,
-    "PSA_Level": 7.8,
-    "Biopsy_Result": 1,
-    "Tumor_Size": 2.3,
-    "Cancer_Stage": 2,
-    "Blood_Pressure": 130,
-    "Cholesterol_Level": 180,
-    "Family_History": 1,
-    "Smoking_History": 0,
-    "Alcohol_Consumption": 1,
-    "Back_Pain": 1,
-    "Fatigue_Level": 3
-}
-
-
+# ---------------- PROSTATE CANCER ROUTES ----------------
 @app.route('/prostate')
 def prostate_page():
     return render_template(
@@ -302,12 +293,10 @@ def prostate_page():
         demo_values_prostate=demo_values_prostate
     )
 
-
-
 @app.route("/predict_prostate", methods=["POST"])
 def predict_prostate():
     try:
-        # Collect input safely
+        # Collect form inputs
         values = []
         for i in range(len(features_prostate)):
             val = request.form.get(f"feature_prostate{i+1}")
@@ -321,7 +310,7 @@ def predict_prostate():
 
         df = pd.DataFrame([values], columns=features_prostate)
 
-        # Align model feature names if available
+        # Align with model's expected features
         if hasattr(model_prostate, "feature_names_in_"):
             expected_cols = list(model_prostate.feature_names_in_)
             for col in expected_cols:
@@ -367,72 +356,6 @@ def predict_prostate():
             prediction_text=f"Error: {e}"
         )
 
-def predict_prostate():
-    try:
-        # Collect form inputs
-        values = []
-        for i in range(len(features_prostate)):
-            val = request.form.get(f"feature_prostate{i+1}")
-            if val is None or val.strip() == "":
-                values.append(0)
-            else:
-                try:
-                    values.append(float(val))
-                except:
-                    values.append(0)
-
-        # Convert to DataFrame using the same columns used for training
-        df = pd.DataFrame([values], columns=features_prostate)
-
-        # ✅ Fix: Align columns with model’s expected features if model has .feature_names_in_
-        if hasattr(model_prostate, "feature_names_in_"):
-            expected_cols = list(model_prostate.feature_names_in_)
-            # Add any missing columns (fill with 0)
-            for col in expected_cols:
-                if col not in df.columns:
-                    df[col] = 0
-            # Keep only the model's expected columns (correct order)
-            df = df[expected_cols]
-
-        # Predict safely
-        pred = model_prostate.predict(df)[0]
-        try:
-            proba = model_prostate.predict_proba(df)[0][1]
-        except Exception:
-            proba = None
-
-        label = "Prostate Cancer Detected" if pred == 1 else "No Prostate Cancer"
-
-        if proba is not None:
-            if proba >= 0.80:
-                risk = "High risk"
-            elif proba >= 0.50:
-                risk = "Moderate risk"
-            else:
-                risk = "Low risk"
-            prob_text = f" ({proba*100:.1f}% probability)"
-        else:
-            risk = ""
-            prob_text = ""
-
-        prediction_text = f"Prediction: {label} — {risk}{prob_text}"
-
-        return render_template(
-            "prostate.html",
-            features_prostate=features_prostate,
-            demo_values_prostate=demo_values_prostate,
-            prediction_text=prediction_text
-        )
-
-    except Exception as e:
-        return render_template(
-            "prostate.html",
-            features_prostate=features_prostate,
-            demo_values_prostate=demo_values_prostate,
-            prediction_text=f"Error: {e}"
-        )
-
-
 @app.route("/selftest_pc")
 def selftest_pc():
     if X_test_pc is None or y_test_pc is None:
@@ -468,4 +391,3 @@ def clustering_pc():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
