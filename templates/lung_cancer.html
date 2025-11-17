@@ -14,8 +14,6 @@
     <div class="d-flex">
       <a href="/selftest_lc" class="btn btn-outline-light me-2">Lung Cancer Self-Test</a>
       <a href="/clustering_lc" class="btn btn-outline-light me-2 mb-2">Lung Cancer Clustering</a>
-
-
     </div>
   </div>
 </nav>
@@ -40,12 +38,166 @@
 
       <form method="POST" action="/predict_lc">
         <div class="row">
-          {% for feature in features_lc %}
+          <!-- GENDER -->
           <div class="col-md-6 mb-3">
-            <label class="form-label fw-semibold">{{ feature }}</label>
-            <input type="number" step="any" class="form-control" name="feature_lc{{ loop.index }}" required>
+            <label class="form-label fw-semibold">GENDER</label>
+            <select class="form-control" name="feature_lc1" required>
+              <option value="">Select Gender</option>
+              <option value="1">Male</option>
+              <option value="0">Female</option>
+            </select>
+            <small class="text-muted">1 = Male, 0 = Female</small>
           </div>
-          {% endfor %}
+
+          <!-- AGE -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">AGE</label>
+            <input type="number" class="form-control" name="feature_lc2" min="1" max="120" required>
+            <small class="text-muted">Enter age in years</small>
+          </div>
+
+          <!-- SMOKING -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">SMOKING</label>
+            <select class="form-control" name="feature_lc3" required>
+              <option value="">Select...</option>
+              <option value="1">No/Light smoking</option>
+              <option value="2">Yes/Heavy smoking</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- YELLOW_FINGERS -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">YELLOW_FINGERS</label>
+            <select class="form-control" name="feature_lc4" required>
+              <option value="">Select...</option>
+              <option value="1">No yellow fingers</option>
+              <option value="2">Yes, has yellow fingers</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- ANXIETY -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">ANXIETY</label>
+            <select class="form-control" name="feature_lc5" required>
+              <option value="">Select...</option>
+              <option value="1">No anxiety</option>
+              <option value="2">Yes, has anxiety</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- PEER_PRESSURE -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">PEER_PRESSURE</label>
+            <select class="form-control" name="feature_lc6" required>
+              <option value="">Select...</option>
+              <option value="1">No peer pressure</option>
+              <option value="2">Yes, experiences peer pressure</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- CHRONIC DISEASE -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">CHRONIC DISEASE</label>
+            <select class="form-control" name="feature_lc7" required>
+              <option value="">Select...</option>
+              <option value="1">No chronic disease</option>
+              <option value="2">Yes, has chronic disease</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- FATIGUE -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">FATIGUE</label>
+            <select class="form-control" name="feature_lc8" required>
+              <option value="">Select...</option>
+              <option value="1">No fatigue</option>
+              <option value="2">Yes, experiences fatigue</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- ALLERGY -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">ALLERGY</label>
+            <select class="form-control" name="feature_lc9" required>
+              <option value="">Select...</option>
+              <option value="1">No allergies</option>
+              <option value="2">Yes, has allergies</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- WHEEZING -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">WHEEZING</label>
+            <select class="form-control" name="feature_lc10" required>
+              <option value="">Select...</option>
+              <option value="1">No wheezing</option>
+              <option value="2">Yes, experiences wheezing</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- ALCOHOL CONSUMING -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">ALCOHOL CONSUMING</label>
+            <select class="form-control" name="feature_lc11" required>
+              <option value="">Select...</option>
+              <option value="1">No/Light alcohol consumption</option>
+              <option value="2">Yes/Heavy alcohol consumption</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- COUGHING -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">COUGHING</label>
+            <select class="form-control" name="feature_lc12" required>
+              <option value="">Select...</option>
+              <option value="1">No coughing</option>
+              <option value="2">Yes, experiences coughing</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- SHORTNESS OF BREATH -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">SHORTNESS OF BREATH</label>
+            <select class="form-control" name="feature_lc13" required>
+              <option value="">Select...</option>
+              <option value="1">No shortness of breath</option>
+              <option value="2">Yes, experiences shortness of breath</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- SWALLOWING DIFFICULTY -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">SWALLOWING DIFFICULTY</label>
+            <select class="form-control" name="feature_lc14" required>
+              <option value="">Select...</option>
+              <option value="1">No swallowing difficulty</option>
+              <option value="2">Yes, has swallowing difficulty</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
+
+          <!-- CHEST PAIN -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">CHEST PAIN</label>
+            <select class="form-control" name="feature_lc15" required>
+              <option value="">Select...</option>
+              <option value="1">No chest pain</option>
+              <option value="2">Yes, experiences chest pain</option>
+            </select>
+            <small class="text-muted">1 = No, 2 = Yes</small>
+          </div>
         </div>
 
         <div class="d-flex justify-content-between mt-4">
@@ -63,12 +215,21 @@
 
 <script>
   document.getElementById("fill-demo").addEventListener("click", () => {
-    const demo = {{ demo_values_lc | tojson }};
-    demo.forEach((val, idx) => {
-      const input = document.querySelector(`input[name="feature_lc${idx+1}"]`);
-      if (input) input.value = val;
-    });
-    alert("Demo patient values (Lung Cancer) filled.");
+    const demoValues = [1, 65, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2]; // High risk male demo
+    
+    // Fill gender
+    document.querySelector('select[name="feature_lc1"]').value = demoValues[0];
+    
+    // Fill age
+    document.querySelector('input[name="feature_lc2"]').value = demoValues[1];
+    
+    // Fill all dropdowns
+    for (let i = 3; i <= 15; i++) {
+      const select = document.querySelector(`select[name="feature_lc${i}"]`);
+      if (select) select.value = demoValues[i-1];
+    }
+    
+    alert("Demo patient values (High Risk Male) filled.");
   });
 </script>
 
