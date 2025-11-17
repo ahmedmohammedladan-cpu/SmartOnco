@@ -24,7 +24,12 @@
   <div class="card shadow-lg border-0">
     <div class="card-body p-5">
       <h2 class="text-primary mb-4">🧬 SmartOnco — Prostate Cancer</h2>
-      <p class="text-muted">Enter the patient’s test values to predict prostate cancer risk level.</p>
+      <p class="text-muted">Enter the patient's medical values to predict prostate cancer risk level.</p>
+      
+      <!-- Gender Warning -->
+      <div class="alert alert-info mb-4">
+        <strong>Note:</strong> Prostate cancer screening is only applicable to male patients.
+      </div>
 
       {% if prediction_text %}
         {% if "Low risk" in prediction_text %}
@@ -45,15 +50,24 @@
           <div class="col-md-6 mb-3">
             <label class="form-label fw-semibold">{{ feature }}</label>
             <input type="number" step="any" class="form-control" name="feature_prostate{{ loop.index }}" required>
+            <!-- Add help text based on feature type -->
+            {% if "PSA" in feature %}
+              <small class="text-muted">Prostate-Specific Antigen level (ng/mL)</small>
+            {% elif "age" in feature.lower() %}
+              <small class="text-muted">Patient age in years</small>
+            {% elif "volume" in feature.lower() %}
+              <small class="text-muted">Prostate volume measurement</small>
+            {% else %}
+              <small class="text-muted">Medical measurement value</small>
+            {% endif %}
           </div>
           {% endfor %}
         </div>
 
-      <!--  <div class="d-flex justify-content-between mt-4">
-         <button type="button" class="btn btn-secondary" onclick="loadDemoProstate()">
-  Load Demo Patient
-</button> -->
-
+        <div class="d-flex justify-content-between mt-4">
+          <button type="button" class="btn btn-outline-secondary" onclick="loadDemoProstate()">
+            Load Demo Patient
+          </button>
           <button type="submit" class="btn btn-success px-4">Predict</button>
         </div>
       </form>
@@ -68,22 +82,26 @@
 
 <!-- Script -->
 <script>
-  document.addEventListener("DOMContentLoaded", function() {
-    const demo = {{ demo_values_prostate | tojson | safe }};
-    const features = {{ features_prostate | tojson | safe }};
+  // Demo values for prostate cancer
+  const demoProstate = {
+    "High Risk": [65, 8.5, 0.12, 25, 6.2, 0.08, 35, 0.15, 40, 0.18],
+    "Low Risk": [45, 1.2, 0.02, 12, 2.1, 0.01, 18, 0.03, 22, 0.05]
+  };
 
-    window.loadDemoProstate = function() {
-      const inputs = document.querySelectorAll('input[name^="feature_prostate"]');
-      inputs.forEach((input, i) => {
-        const feature = features[i];
-        if (demo.hasOwnProperty(feature)) {
-          input.value = demo[feature];
-        }
-      });
-    };
-  });
+  function loadDemoProstate() {
+    const inputs = document.querySelectorAll('input[name^="feature_prostate"]');
+    // Using high risk demo values
+    const demoValues = demoProstate["High Risk"];
+    
+    inputs.forEach((input, index) => {
+      if (demoValues[index] !== undefined) {
+        input.value = demoValues[index];
+      }
+    });
+    
+    alert("Demo patient values (High Risk Male) filled.");
+  }
 </script>
-
 
 </body>
 </html>
