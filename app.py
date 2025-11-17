@@ -176,6 +176,22 @@ if model_prostate is None and X_train_pc is not None and y_train_pc is not None:
         model_prostate = None
 
 # ==================================================
+# PROSTATE CANCER FIX - DELETE OLD MODEL
+# ==================================================
+
+# DELETE the broken model to force retraining
+if os.path.exists("prostate_cancer_model.pkl"):
+    os.remove("prostate_cancer_model.pkl")
+    print("DELETED OLD BROKEN PROSTATE MODEL - FORCING RETRAIN")
+
+features_prostate = [
+    "Age", "PSA_Level", "Biopsy_Result", "Tumor_Size", "Cancer_Stage",
+    "Blood_Pressure", "Cholesterol_Level", "Family_History", 
+    "Smoking_History", "Alcohol_Consumption", "Back_Pain", "Fatigue_Level"
+]
+
+# Continue with your existing SMOTE code...
+# ==================================================
 # ROUTES (Mostly unchanged, but prostate prediction fixed)
 # ==================================================
 @app.route("/")
@@ -391,3 +407,4 @@ def clustering_pc():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
