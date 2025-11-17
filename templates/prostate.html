@@ -46,22 +46,119 @@
       <!-- Prediction Form -->
       <form method="POST" action="/predict_prostate">
         <div class="row">
-          {% for feature in features_prostate %}
+          <!-- Age -->
           <div class="col-md-6 mb-3">
-            <label class="form-label fw-semibold">{{ feature }}</label>
-            <input type="number" step="any" class="form-control" name="feature_prostate{{ loop.index }}" required>
-            <!-- Add help text based on feature type -->
-            {% if "PSA" in feature %}
-              <small class="text-muted">Prostate-Specific Antigen level (ng/mL)</small>
-            {% elif "age" in feature.lower() %}
-              <small class="text-muted">Patient age in years</small>
-            {% elif "volume" in feature.lower() %}
-              <small class="text-muted">Prostate volume measurement</small>
-            {% else %}
-              <small class="text-muted">Medical measurement value</small>
-            {% endif %}
+            <label class="form-label fw-semibold">Age</label>
+            <input type="number" class="form-control" name="feature_prostate1" min="40" max="100" required>
+            <small class="text-muted">Patient age in years (typically 40+)</small>
           </div>
-          {% endfor %}
+
+          <!-- PSA Level -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">PSA_Level</label>
+            <input type="number" step="0.1" class="form-control" name="feature_prostate2" min="0" max="100" required>
+            <small class="text-muted">Prostate-Specific Antigen level (ng/mL) - Normal: 0-4 ng/mL</small>
+          </div>
+
+          <!-- Biopsy Result -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Biopsy_Result</label>
+            <select class="form-control" name="feature_prostate3" required>
+              <option value="">Select...</option>
+              <option value="0">Negative (No cancer)</option>
+              <option value="1">Positive (Cancer found)</option>
+            </select>
+            <small class="text-muted">0 = Negative, 1 = Positive</small>
+          </div>
+
+          <!-- Tumor Size -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Tumor_Size</label>
+            <input type="number" step="0.1" class="form-control" name="feature_prostate4" min="0" max="50" required>
+            <small class="text-muted">Tumor size in centimeters (cm)</small>
+          </div>
+
+          <!-- Cancer Stage -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Cancer_Stage</label>
+            <select class="form-control" name="feature_prostate5" required>
+              <option value="">Select Stage</option>
+              <option value="1">Stage I (Localized)</option>
+              <option value="2">Stage II (Early advanced)</option>
+              <option value="3">Stage III (Advanced)</option>
+              <option value="4">Stage IV (Metastatic)</option>
+            </select>
+            <small class="text-muted">1-4 (I-IV cancer staging)</small>
+          </div>
+
+          <!-- Blood Pressure -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Blood_Pressure</label>
+            <input type="number" class="form-control" name="feature_prostate6" min="60" max="200" required>
+            <small class="text-muted">Systolic blood pressure (mmHg)</small>
+          </div>
+
+          <!-- Cholesterol Level -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Cholesterol_Level</label>
+            <input type="number" class="form-control" name="feature_prostate7" min="100" max="300" required>
+            <small class="text-muted">Total cholesterol level (mg/dL)</small>
+          </div>
+
+          <!-- Family History -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Family_History</label>
+            <select class="form-control" name="feature_prostate8" required>
+              <option value="">Select...</option>
+              <option value="0">No family history</option>
+              <option value="1">Family history present</option>
+            </select>
+            <small class="text-muted">0 = No, 1 = Yes</small>
+          </div>
+
+          <!-- Smoking History -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Smoking_History</label>
+            <select class="form-control" name="feature_prostate9" required>
+              <option value="">Select...</option>
+              <option value="0">Non-smoker</option>
+              <option value="1">Current/Former smoker</option>
+            </select>
+            <small class="text-muted">0 = No, 1 = Yes</small>
+          </div>
+
+          <!-- Alcohol Consumption -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Alcohol_Consumption</label>
+            <select class="form-control" name="feature_prostate10" required>
+              <option value="">Select...</option>
+              <option value="0">Non-drinker</option>
+              <option value="1">Moderate/Heavy drinker</option>
+            </select>
+            <small class="text-muted">0 = No, 1 = Yes</small>
+          </div>
+
+          <!-- Back Pain -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Back_Pain</label>
+            <select class="form-control" name="feature_prostate11" required>
+              <option value="">Select...</option>
+              <option value="0">No back pain</option>
+              <option value="1">Experiences back pain</option>
+            </select>
+            <small class="text-muted">0 = No, 1 = Yes</small>
+          </div>
+
+          <!-- Fatigue Level -->
+          <div class="col-md-6 mb-3">
+            <label class="form-label fw-semibold">Fatigue_Level</label>
+            <select class="form-control" name="feature_prostate12" required>
+              <option value="">Select...</option>
+              <option value="0">No fatigue</option>
+              <option value="1">Experiences fatigue</option>
+            </select>
+            <small class="text-muted">0 = No, 1 = Yes</small>
+          </div>
         </div>
 
         <div class="d-flex justify-content-between mt-4">
@@ -82,22 +179,34 @@
 
 <!-- Script -->
 <script>
-  // Demo values for prostate cancer
-  const demoProstate = {
-    "High Risk": [65, 8.5, 0.12, 25, 6.2, 0.08, 35, 0.15, 40, 0.18],
-    "Low Risk": [45, 1.2, 0.02, 12, 2.1, 0.01, 18, 0.03, 22, 0.05]
-  };
-
   function loadDemoProstate() {
-    const inputs = document.querySelectorAll('input[name^="feature_prostate"]');
-    // Using high risk demo values
-    const demoValues = demoProstate["High Risk"];
-    
-    inputs.forEach((input, index) => {
-      if (demoValues[index] !== undefined) {
-        input.value = demoValues[index];
+    // High Risk Demo Patient
+    const demoValues = [
+      65,    // Age
+      8.5,   // PSA Level (high)
+      1,     // Biopsy Result (positive)
+      2.5,   // Tumor Size (cm)
+      3,     // Cancer Stage (III)
+      145,   // Blood Pressure
+      240,   // Cholesterol Level
+      1,     // Family History (yes)
+      1,     // Smoking History (yes)
+      1,     // Alcohol Consumption (yes)
+      1,     // Back Pain (yes)
+      1      // Fatigue Level (yes)
+    ];
+
+    // Fill all inputs
+    for (let i = 1; i <= 12; i++) {
+      const input = document.querySelector(`input[name="feature_prostate${i}"]`);
+      const select = document.querySelector(`select[name="feature_prostate${i}"]`);
+      
+      if (input) {
+        input.value = demoValues[i-1];
+      } else if (select) {
+        select.value = demoValues[i-1];
       }
-    });
+    }
     
     alert("Demo patient values (High Risk Male) filled.");
   }
