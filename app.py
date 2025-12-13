@@ -459,53 +459,237 @@ def selftest_bc():
     acc = accuracy_score(y_test_bc, y_pred)
     cm = confusion_matrix(y_test_bc, y_pred).tolist()
     report = classification_report(y_test_bc, y_pred, target_names=data_bc.target_names, output_dict=True)
+    
+    # Convert report to match your template structure
+    formatted_report = {}
+    for cls in data_bc.target_names:
+        formatted_report[cls] = {
+            'precision': report[cls]['precision'],
+            'recall': report[cls]['recall'],
+            'f1-score': report[cls]['f1-score'],
+            'support': int(report[cls]['support'])
+        }
+    
     return render_template("selftest.html", 
                          accuracy=acc, 
                          cm=cm, 
                          target_names=data_bc.target_names, 
-                         report=report,
-                         cancer_type="Breast Cancer",
-                         has_model=True)
+                         report=formatted_report)
 
 @app.route("/selftest_lc")
 def selftest_lc():
     """Self-test for Lung Cancer Model"""
     if model_lc is None or X_test_lc is None:
-        return render_template("selftest.html", 
-                             accuracy=0,
-                             cm=None, 
-                             target_names=None, 
-                             report=None,
-                             message="Lung dataset not available for self-test.",
-                             cancer_type="Lung Cancer",
-                             has_model=False)
+        # Return simple HTML page when no model is available
+        return """
+        <html>
+        <head>
+            <title>SmartOnco — Lung Cancer Self-Test</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body class="bg-light">
+            <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+                <div class="container">
+                    <a class="navbar-brand fw-bold" href="/">SmartOnco</a>
+                </div>
+            </nav>
+            <div class="container my-5">
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-5 text-center">
+                        <h3 class="text-primary mb-4">📊 Lung Cancer Model Self-Test</h3>
+                        <div class="alert alert-warning">
+                            <h5>⚠️ Model Not Available</h5>
+                            <p>Lung Cancer dataset not available for self-test.</p>
+                            <p>The system uses improved manual rules with age-adjusted risk calculations.</p>
+                        </div>
+                        <a href="/lung" class="btn btn-secondary">← Back to Lung Cancer Prediction</a>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
     
     # Note: This tests the ML model, not the manual rules
     y_pred = model_lc.predict(X_test_lc)
     acc = accuracy_score(y_test_lc, y_pred)
     cm = confusion_matrix(y_test_lc, y_pred).tolist()
     report = classification_report(y_test_lc, y_pred, target_names=["No Cancer", "Cancer"], output_dict=True)
+    
+    # Convert report to match your template structure
+    formatted_report = {}
+    for cls in ["No Cancer", "Cancer"]:
+        formatted_report[cls] = {
+            'precision': report[cls]['precision'],
+            'recall': report[cls]['recall'],
+            'f1-score': report[cls]['f1-score'],
+            'support': int(report[cls]['support'])
+        }
+    
     return render_template("selftest.html", 
                          accuracy=acc, 
                          cm=cm, 
                          target_names=["No Cancer", "Cancer"], 
-                         report=report,
-                         cancer_type="Lung Cancer",
-                         has_model=True)
+                         report=formatted_report)
 
 @app.route("/selftest_pc")
 def selftest_pc():
-    """Self-test for Prostate Cancer"""
-    # For prostate, we don't have a trained ML model, only rule-based system
-    message = "Prostate Cancer uses a rule-based clinical decision system instead of a traditional ML model. The system uses clinical guidelines based on PSA levels, biopsy results, cancer stage, and family history to make predictions."
-    return render_template("selftest.html", 
-                         accuracy=0,  # Set to 0 to avoid None type error
-                         cm=None, 
-                         target_names=None, 
-                         report=None,
-                         message=message,
-                         cancer_type="Prostate Cancer",
-                         has_model=False)
+    """Self-test for Prostate Cancer - Custom HTML page for rule-based system"""
+    html = """
+    <html>
+    <head>
+        <title>SmartOnco — Prostate Cancer Rule-Based System Test</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        <style>
+            body { background-color: #f8f9fa; }
+            .rule-card { border-left: 4px solid #28a745; }
+            .test-case { background-color: #e9ecef; border-radius: 5px; }
+        </style>
+    </head>
+    <body>
+    
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+        <div class="container">
+        <a class="navbar-brand fw-bold" href="/">SmartOnco</a>
+        <div>
+            <a href="/test_all_cases" class="btn btn-outline-light btn-sm">Test All Cases</a>
+        </div>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="container my-5">
+        <div class="card shadow-lg border-0">
+        <div class="card-body p-5">
+            <h3 class="text-primary mb-4">📊 Prostate Cancer Rule-Based System Test</h3>
+            
+            <div class="alert alert-info">
+            <h5>ℹ️ System Information</h5>
+            <p>Prostate Cancer uses a <strong>rule-based clinical decision system</strong> instead of a traditional ML model. This approach is based on established clinical guidelines and provides more interpretable results.</p>
+            </div>
+            
+            <h5 class="mt-4">📋 Clinical Decision Rules</h5>
+            <div class="row">
+            <div class="col-md-6">
+                <div class="card rule-card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title">🔴 High Risk (Cancer Detected)</h6>
+                    <ul class="mb-0">
+                    <li>Positive biopsy result = 98% probability</li>
+                    <li>PSA > 20.0 = 90% probability</li>
+                    <li>PSA > 10.0 = 85% probability</li>
+                    </ul>
+                </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card rule-card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title">🟡 Moderate Risk</h6>
+                    <ul class="mb-0">
+                    <li>PSA > 4.0 + Cancer Stage ≥ 2 = 75% probability</li>
+                    <li>PSA > 4.0 + Family History = 65% probability</li>
+                    </ul>
+                </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card rule-card mb-3">
+                <div class="card-body">
+                    <h6 class="card-title">🟢 Low Risk</h6>
+                    <ul class="mb-0">
+                    <li>PSA > 4.0 alone = 45% probability</li>
+                    <li>PSA ≤ 4.0 = 10% probability (No Cancer)</li>
+                    </ul>
+                </div>
+                </div>
+            </div>
+            </div>
+            
+            <h5 class="mt-4">🧪 Test Cases</h5>
+            <div class="test-case p-3 mb-3">
+                <h6>Test Case 1: High Risk (Biopsy Positive)</h6>
+                <p><strong>Input:</strong> Age=65, PSA=6.0, Biopsy=1, Tumor_Size=2.0, Cancer_Stage=2, Family_History=1</p>
+                <p><strong>Expected:</strong> Prostate Cancer Detected — High risk (98.0% probability)</p>
+                <form action="/predict_prostate" method="POST" class="mt-2">
+                    <input type="hidden" name="feature_prostate1" value="65">
+                    <input type="hidden" name="feature_prostate2" value="6.0">
+                    <input type="hidden" name="feature_prostate3" value="1">
+                    <input type="hidden" name="feature_prostate4" value="2.0">
+                    <input type="hidden" name="feature_prostate5" value="2">
+                    <input type="hidden" name="feature_prostate6" value="140">
+                    <input type="hidden" name="feature_prostate7" value="200">
+                    <input type="hidden" name="feature_prostate8" value="1">
+                    <input type="hidden" name="feature_prostate9" value="1">
+                    <input type="hidden" name="feature_prostate10" value="1">
+                    <input type="hidden" name="feature_prostate11" value="0">
+                    <input type="hidden" name="feature_prostate12" value="0">
+                    <button type="submit" class="btn btn-sm btn-primary">Test This Case</button>
+                </form>
+            </div>
+            
+            <div class="test-case p-3 mb-3">
+                <h6>Test Case 2: Moderate Risk (High PSA + Family History)</h6>
+                <p><strong>Input:</strong> Age=58, PSA=8.5, Biopsy=0, Tumor_Size=1.5, Cancer_Stage=1, Family_History=1</p>
+                <p><strong>Expected:</strong> Prostate Cancer Detected — Moderate risk (65.0% probability)</p>
+                <form action="/predict_prostate" method="POST" class="mt-2">
+                    <input type="hidden" name="feature_prostate1" value="58">
+                    <input type="hidden" name="feature_prostate2" value="8.5">
+                    <input type="hidden" name="feature_prostate3" value="0">
+                    <input type="hidden" name="feature_prostate4" value="1.5">
+                    <input type="hidden" name="feature_prostate5" value="1">
+                    <input type="hidden" name="feature_prostate6" value="130">
+                    <input type="hidden" name="feature_prostate7" value="220">
+                    <input type="hidden" name="feature_prostate8" value="1">
+                    <input type="hidden" name="feature_prostate9" value="0">
+                    <input type="hidden" name="feature_prostate10" value="0">
+                    <input type="hidden" name="feature_prostate11" value="0">
+                    <input type="hidden" name="feature_prostate12" value="0">
+                    <button type="submit" class="btn btn-sm btn-primary">Test This Case</button>
+                </form>
+            </div>
+            
+            <div class="test-case p-3">
+                <h6>Test Case 3: Low Risk (Normal PSA)</h6>
+                <p><strong>Input:</strong> Age=70, PSA=3.5, Biopsy=0, Tumor_Size=0, Cancer_Stage=1, Family_History=0</p>
+                <p><strong>Expected:</strong> No Prostate Cancer — Low risk (10.0% probability)</p>
+                <form action="/predict_prostate" method="POST" class="mt-2">
+                    <input type="hidden" name="feature_prostate1" value="70">
+                    <input type="hidden" name="feature_prostate2" value="3.5">
+                    <input type="hidden" name="feature_prostate3" value="0">
+                    <input type="hidden" name="feature_prostate4" value="0">
+                    <input type="hidden" name="feature_prostate5" value="1">
+                    <input type="hidden" name="feature_prostate6" value="150">
+                    <input type="hidden" name="feature_prostate7" value="240">
+                    <input type="hidden" name="feature_prostate8" value="0">
+                    <input type="hidden" name="feature_prostate9" value="1">
+                    <input type="hidden" name="feature_prostate10" value="1">
+                    <input type="hidden" name="feature_prostate11" value="0">
+                    <input type="hidden" name="feature_prostate12" value="0">
+                    <button type="submit" class="btn btn-sm btn-primary">Test This Case</button>
+                </form>
+            </div>
+            
+            <div class="mt-4">
+                <a href="/prostate" class="btn btn-secondary me-2">← Back to Prostate Cancer Prediction</a>
+                <a href="/clustering_pc" class="btn btn-outline-primary">View Clustering</a>
+            </div>
+        </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <footer class="bg-primary text-white text-center py-3 mt-5">
+        <small>&copy; 2025 SmartOnco — AI Cancer Diagnosis System</small>
+    </footer>
+    
+    </body>
+    </html>
+    """
+    return html
 
 # ==================================================
 # ROUTES - CLUSTERING PAGES
@@ -532,22 +716,76 @@ def clustering_bc():
     img.seek(0)
     plot_url = base64.b64encode(img.getvalue()).decode()
     
-    return render_template("clustering.html", 
-                         ari=ari, 
-                         plot_url=plot_url,
-                         cancer_type="Breast Cancer",
-                         has_data=True)
+    # Create HTML response
+    html = f"""
+    <html>
+    <head>
+        <title>SmartOnco — Breast Cancer Clustering</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-light">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="/">SmartOnco</a>
+                <div>
+                    <a href="/test_all_cases" class="btn btn-outline-light btn-sm">Test All Cases</a>
+                </div>
+            </div>
+        </nav>
+        <div class="container my-5">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h3 class="text-primary mb-4">📊 Breast Cancer Clustering Analysis</h3>
+                    <h5 class="mt-4">Clustering Visualization</h5>
+                    <img src="data:image/png;base64,{plot_url}" class="img-fluid rounded shadow" alt="Clustering Plot">
+                    <p class="mt-3 fs-5"><b>Adjusted Rand Index:</b> {ari:.3f}</p>
+                    <p class="text-muted"><small>The Adjusted Rand Index (ARI) measures the similarity between the clustering and true labels. A value close to 1 indicates good agreement.</small></p>
+                    <div class="mt-4">
+                        <a href="/" class="btn btn-secondary me-2">← Back to Breast Cancer Prediction</a>
+                        <a href="/selftest_bc" class="btn btn-outline-primary">View Self-Test</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html
 
 @app.route("/clustering_lc")
 def clustering_lc():
     """Clustering visualization for Lung Cancer"""
     if X_lc is None or kmeans_lc is None:
-        return render_template("clustering.html", 
-                             ari=0,
-                             plot_url=None,
-                             message="Lung data not available for clustering.",
-                             cancer_type="Lung Cancer",
-                             has_data=False)
+        html = """
+        <html>
+        <head>
+            <title>SmartOnco — Lung Cancer Clustering</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body class="bg-light">
+            <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+                <div class="container">
+                    <a class="navbar-brand fw-bold" href="/">SmartOnco</a>
+                </div>
+            </nav>
+            <div class="container my-5">
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-5 text-center">
+                        <h3 class="text-primary mb-4">📊 Lung Cancer Clustering Analysis</h3>
+                        <div class="alert alert-warning">
+                            <h5>⚠️ Data Not Available</h5>
+                            <p>Lung Cancer data not available for clustering analysis.</p>
+                        </div>
+                        <a href="/lung" class="btn btn-secondary">← Back to Lung Cancer Prediction</a>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        return html
     
     labels = kmeans_lc.predict(scaler_lc.transform(X_lc))
     ari = adjusted_rand_score(y_lc, labels) if y_lc is not None else 0
@@ -567,22 +805,83 @@ def clustering_lc():
     img.seek(0)
     plot_url = base64.b64encode(img.getvalue()).decode()
     
-    return render_template("clustering.html", 
-                         ari=ari, 
-                         plot_url=plot_url,
-                         cancer_type="Lung Cancer",
-                         has_data=True)
+    # Create HTML response
+    html = f"""
+    <html>
+    <head>
+        <title>SmartOnco — Lung Cancer Clustering</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-light">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="/">SmartOnco</a>
+                <div>
+                    <a href="/test_all_cases" class="btn btn-outline-light btn-sm">Test All Cases</a>
+                </div>
+            </div>
+        </nav>
+        <div class="container my-5">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h3 class="text-primary mb-4">📊 Lung Cancer Clustering Analysis</h3>
+                    <h5 class="mt-4">Clustering Visualization</h5>
+                    <img src="data:image/png;base64,{plot_url}" class="img-fluid rounded shadow" alt="Clustering Plot">
+                    <p class="mt-3 fs-5"><b>Adjusted Rand Index:</b> {ari:.3f}</p>
+                    <p class="text-muted"><small>The Adjusted Rand Index (ARI) measures the similarity between the clustering and true labels. A value close to 1 indicates good agreement.</small></p>
+                    <div class="mt-4">
+                        <a href="/lung" class="btn btn-secondary me-2">← Back to Lung Cancer Prediction</a>
+                        <a href="/selftest_lc" class="btn btn-outline-primary">View Self-Test</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html
 
 @app.route("/clustering_pc")
 def clustering_pc():
     """Clustering visualization for Prostate Cancer"""
     if X_pc is None or kmeans_pc is None:
-        return render_template("clustering.html", 
-                             ari=0,
-                             plot_url=None,
-                             message="Prostate data not available for clustering.",
-                             cancer_type="Prostate Cancer",
-                             has_data=False)
+        html = """
+        <html>
+        <head>
+            <title>SmartOnco — Prostate Cancer Clustering</title>
+            <meta name="viewport" content="width=device-width, initial-scale=1" />
+            <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+        </head>
+        <body class="bg-light">
+            <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+                <div class="container">
+                    <a class="navbar-brand fw-bold" href="/">SmartOnco</a>
+                    <div>
+                        <a href="/test_all_cases" class="btn btn-outline-light btn-sm">Test All Cases</a>
+                    </div>
+                </div>
+            </nav>
+            <div class="container my-5">
+                <div class="card shadow-lg border-0">
+                    <div class="card-body p-5 text-center">
+                        <h3 class="text-primary mb-4">📊 Prostate Cancer Clustering Analysis</h3>
+                        <div class="alert alert-info">
+                            <h5>ℹ️ Information</h5>
+                            <p>Prostate Cancer uses a rule-based clinical decision system.</p>
+                            <p>For clustering analysis, prostate cancer data file ('prostate_cancer.csv') is required but not found.</p>
+                        </div>
+                        <div class="mt-4">
+                            <a href="/prostate" class="btn btn-secondary me-2">← Back to Prostate Cancer Prediction</a>
+                            <a href="/selftest_pc" class="btn btn-outline-primary">View Self-Test</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </body>
+        </html>
+        """
+        return html
     
     labels = kmeans_pc.predict(scaler_pc.transform(X_pc))
     ari = adjusted_rand_score(y_pc, labels) if y_pc is not None else 0
@@ -602,11 +901,42 @@ def clustering_pc():
     img.seek(0)
     plot_url = base64.b64encode(img.getvalue()).decode()
     
-    return render_template("clustering.html", 
-                         ari=ari, 
-                         plot_url=plot_url,
-                         cancer_type="Prostate Cancer",
-                         has_data=True)
+    # Create HTML response
+    html = f"""
+    <html>
+    <head>
+        <title>SmartOnco — Prostate Cancer Clustering</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1" />
+        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    </head>
+    <body class="bg-light">
+        <nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
+            <div class="container">
+                <a class="navbar-brand fw-bold" href="/">SmartOnco</a>
+                <div>
+                    <a href="/test_all_cases" class="btn btn-outline-light btn-sm">Test All Cases</a>
+                </div>
+            </div>
+        </nav>
+        <div class="container my-5">
+            <div class="card shadow-lg border-0">
+                <div class="card-body p-5">
+                    <h3 class="text-primary mb-4">📊 Prostate Cancer Clustering Analysis</h3>
+                    <h5 class="mt-4">Clustering Visualization</h5>
+                    <img src="data:image/png;base64,{plot_url}" class="img-fluid rounded shadow" alt="Clustering Plot">
+                    <p class="mt-3 fs-5"><b>Adjusted Rand Index:</b> {ari:.3f}</p>
+                    <p class="text-muted"><small>The Adjusted Rand Index (ARI) measures the similarity between the clustering and true labels. A value close to 1 indicates good agreement.</small></p>
+                    <div class="mt-4">
+                        <a href="/prostate" class="btn btn-secondary me-2">← Back to Prostate Cancer Prediction</a>
+                        <a href="/selftest_pc" class="btn btn-outline-primary">View Self-Test</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return html
 
 # ==================================================
 # TEST PAGES
