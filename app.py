@@ -472,7 +472,7 @@ def selftest_lc():
     """Self-test for Lung Cancer Model"""
     if model_lc is None or X_test_lc is None:
         return render_template("selftest.html", 
-                             accuracy=None, 
+                             accuracy=0,
                              cm=None, 
                              target_names=None, 
                              report=None,
@@ -499,7 +499,7 @@ def selftest_pc():
     # For prostate, we don't have a trained ML model, only rule-based system
     message = "Prostate Cancer uses a rule-based clinical decision system instead of a traditional ML model. The system uses clinical guidelines based on PSA levels, biopsy results, cancer stage, and family history to make predictions."
     return render_template("selftest.html", 
-                         accuracy=None, 
+                         accuracy=0,  # Set to 0 to avoid None type error
                          cm=None, 
                          target_names=None, 
                          report=None,
@@ -543,14 +543,14 @@ def clustering_lc():
     """Clustering visualization for Lung Cancer"""
     if X_lc is None or kmeans_lc is None:
         return render_template("clustering.html", 
-                             ari=None, 
+                             ari=0,
                              plot_url=None,
                              message="Lung data not available for clustering.",
                              cancer_type="Lung Cancer",
                              has_data=False)
     
     labels = kmeans_lc.predict(scaler_lc.transform(X_lc))
-    ari = adjusted_rand_score(y_lc, labels) if y_lc is not None else None
+    ari = adjusted_rand_score(y_lc, labels) if y_lc is not None else 0
     
     # Create visualization
     fig, ax = plt.subplots(figsize=(10, 6))
@@ -578,14 +578,14 @@ def clustering_pc():
     """Clustering visualization for Prostate Cancer"""
     if X_pc is None or kmeans_pc is None:
         return render_template("clustering.html", 
-                             ari=None, 
+                             ari=0,
                              plot_url=None,
                              message="Prostate data not available for clustering.",
                              cancer_type="Prostate Cancer",
                              has_data=False)
     
     labels = kmeans_pc.predict(scaler_pc.transform(X_pc))
-    ari = adjusted_rand_score(y_pc, labels) if y_pc is not None else None
+    ari = adjusted_rand_score(y_pc, labels) if y_pc is not None else 0
     
     # Create visualization
     fig, ax = plt.subplots(figsize=(10, 6))
