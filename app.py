@@ -464,7 +464,8 @@ def selftest_bc():
                          cm=cm, 
                          target_names=data_bc.target_names, 
                          report=report,
-                         cancer_type="Breast Cancer")
+                         cancer_type="Breast Cancer",
+                         has_model=True)
 
 @app.route("/selftest_lc")
 def selftest_lc():
@@ -476,7 +477,8 @@ def selftest_lc():
                              target_names=None, 
                              report=None,
                              message="Lung dataset not available for self-test.",
-                             cancer_type="Lung Cancer")
+                             cancer_type="Lung Cancer",
+                             has_model=False)
     
     # Note: This tests the ML model, not the manual rules
     y_pred = model_lc.predict(X_test_lc)
@@ -488,31 +490,22 @@ def selftest_lc():
                          cm=cm, 
                          target_names=["No Cancer", "Cancer"], 
                          report=report,
-                         cancer_type="Lung Cancer")
+                         cancer_type="Lung Cancer",
+                         has_model=True)
 
 @app.route("/selftest_pc")
 def selftest_pc():
     """Self-test for Prostate Cancer"""
-    if X_pc is None or y_pc is None:
-        return render_template("selftest.html", 
-                             accuracy=None, 
-                             cm=None, 
-                             target_names=None, 
-                             report=None,
-                             message="Prostate dataset not available for self-test.",
-                             cancer_type="Prostate Cancer")
-    
-    # For prostate, we'll use a simple rule-based accuracy check
-    # Since we don't have a trained model, we'll calculate accuracy based on our rules
-    # This is a simplified version
-    message = "Prostate Cancer uses rule-based system. No traditional model to test."
+    # For prostate, we don't have a trained ML model, only rule-based system
+    message = "Prostate Cancer uses a rule-based clinical decision system instead of a traditional ML model. The system uses clinical guidelines based on PSA levels, biopsy results, cancer stage, and family history to make predictions."
     return render_template("selftest.html", 
                          accuracy=None, 
                          cm=None, 
                          target_names=None, 
                          report=None,
                          message=message,
-                         cancer_type="Prostate Cancer")
+                         cancer_type="Prostate Cancer",
+                         has_model=False)
 
 # ==================================================
 # ROUTES - CLUSTERING PAGES
@@ -542,7 +535,8 @@ def clustering_bc():
     return render_template("clustering.html", 
                          ari=ari, 
                          plot_url=plot_url,
-                         cancer_type="Breast Cancer")
+                         cancer_type="Breast Cancer",
+                         has_data=True)
 
 @app.route("/clustering_lc")
 def clustering_lc():
@@ -552,7 +546,8 @@ def clustering_lc():
                              ari=None, 
                              plot_url=None,
                              message="Lung data not available for clustering.",
-                             cancer_type="Lung Cancer")
+                             cancer_type="Lung Cancer",
+                             has_data=False)
     
     labels = kmeans_lc.predict(scaler_lc.transform(X_lc))
     ari = adjusted_rand_score(y_lc, labels) if y_lc is not None else None
@@ -575,7 +570,8 @@ def clustering_lc():
     return render_template("clustering.html", 
                          ari=ari, 
                          plot_url=plot_url,
-                         cancer_type="Lung Cancer")
+                         cancer_type="Lung Cancer",
+                         has_data=True)
 
 @app.route("/clustering_pc")
 def clustering_pc():
@@ -585,7 +581,8 @@ def clustering_pc():
                              ari=None, 
                              plot_url=None,
                              message="Prostate data not available for clustering.",
-                             cancer_type="Prostate Cancer")
+                             cancer_type="Prostate Cancer",
+                             has_data=False)
     
     labels = kmeans_pc.predict(scaler_pc.transform(X_pc))
     ari = adjusted_rand_score(y_pc, labels) if y_pc is not None else None
@@ -608,7 +605,8 @@ def clustering_pc():
     return render_template("clustering.html", 
                          ari=ari, 
                          plot_url=plot_url,
-                         cancer_type="Prostate Cancer")
+                         cancer_type="Prostate Cancer",
+                         has_data=True)
 
 # ==================================================
 # TEST PAGES
