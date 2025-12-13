@@ -1,4 +1,3 @@
-
 from flask import Flask, render_template, request
 import joblib, numpy as np, pandas as pd
 from sklearn.datasets import load_breast_cancer
@@ -901,7 +900,7 @@ def test_all_cases():
     """
     
     # Lung Cancer Test Cases
-    
+    html += """
     <div class="module">
         <h2>🫁 Lung Cancer - Previously Problematic Cases</h2>
         
@@ -988,7 +987,3 @@ if __name__ == "__main__":
     
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
-
-
-
