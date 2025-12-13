@@ -1,3 +1,4 @@
+
 from flask import Flask, render_template, request
 import joblib, numpy as np, pandas as pd
 from sklearn.datasets import load_breast_cancer
@@ -470,7 +471,11 @@ def selftest_bc():
             'support': int(report[cls]['support'])
         }
     
-
+    return render_template("selftest.html", 
+                         accuracy=acc, 
+                         cm=cm, 
+                         target_names=data_bc.target_names, 
+                         report=formatted_report)
 
 @app.route("/selftest_lc")
 def selftest_lc():
@@ -523,7 +528,12 @@ def selftest_lc():
             'support': int(report[cls]['support'])
         }
     
-   
+    return render_template("selftest.html", 
+                         accuracy=acc, 
+                         cm=cm, 
+                         target_names=["No Cancer", "Cancer"], 
+                         report=formatted_report)
+
 @app.route("/selftest_pc")
 def selftest_pc():
     """Self-test for Prostate Cancer - Showing rule-based system metrics"""
@@ -557,7 +567,12 @@ def selftest_pc():
     # Format the accuracy to 2 decimal places like the template expects
     accuracy = round(accuracy, 4)
     
-    
+    return render_template("selftest.html", 
+                         accuracy=accuracy, 
+                         cm=cm, 
+                         target_names=target_names, 
+                         report=report)
+
 # ==================================================
 # ROUTES - CLUSTERING PAGES
 # ==================================================
@@ -886,7 +901,7 @@ def test_all_cases():
     """
     
     # Lung Cancer Test Cases
-    html += """
+    
     <div class="module">
         <h2>🫁 Lung Cancer - Previously Problematic Cases</h2>
         
