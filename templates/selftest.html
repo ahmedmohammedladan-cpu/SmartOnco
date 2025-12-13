@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+SELFTEST.HTML <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -13,7 +13,8 @@
   <div class="container">
     <a class="navbar-brand fw-bold" href="/">SmartOnco</a>
     <div>
-      <a href="/test_all_cases" class="btn btn-outline-light btn-sm">Test All Cases</a>
+      
+      
     </div>
   </div>
 </nav>
@@ -22,105 +23,59 @@
 <div class="container my-5">
   <div class="card shadow-lg border-0">
     <div class="card-body p-5">
-      <h3 class="text-primary mb-4">📊 SmartOnco: {{ cancer_type }} Model Self-Test</h3>
-      
-      <!-- Accuracy or Message -->
-      {% if has_model and accuracy is not none %}
-        <p class="fs-5"><b>Accuracy:</b> {{ "%.2f"|format(accuracy*100) }}%</p>
-      {% elif message %}
-        <div class="alert alert-info">
-          <h5>Information:</h5>
-          <p>{{ message }}</p>
-        </div>
-      {% else %}
-        <div class="alert alert-warning">
-          <p>No model available for self-test.</p>
-        </div>
-      {% endif %}
+      <h3 class="text-primary mb-4">📊 SmartOnco: Model Self-Test</h3>
+      <p class="fs-5"><b>Accuracy:</b> {{ "%.2f"|format(accuracy*100) }}%</p>
 
       <!-- Confusion Matrix -->
-      {% if has_model and cm and target_names %}
-        <h5 class="mt-4">Confusion Matrix (rows=true, cols=pred)</h5>
-        <table class="table table-bordered text-center">
-          <thead class="table-light">
-            <tr>
-              <th></th>
-              {% for name in target_names %}
-                <th>{{ name }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for row in cm %}
-            <tr>
-              <th>{{ target_names[loop.index0] }}</th>
-              {% for val in row %}
-                <td>{{ val }}</td>
-              {% endfor %}
-            </tr>
+      <h5 class="mt-4">Confusion Matrix (rows=true, cols=pred)</h5>
+      <table class="table table-bordered text-center">
+        <thead class="table-light">
+          <tr>
+            <th></th>
+            {% for name in target_names %}
+              <th>{{ name }}</th>
             {% endfor %}
-          </tbody>
-        </table>
-      {% elif has_model %}
-        <div class="alert alert-warning">
-          <p>Confusion matrix not available.</p>
-        </div>
-      {% else %}
-        <div class="alert alert-info">
-          <p>Rule-based systems don't have confusion matrices.</p>
-        </div>
-      {% endif %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in cm %}
+          <tr>
+            <th>{{ target_names[loop.index0] }}</th>
+            {% for val in row %}
+              <td>{{ val }}</td>
+            {% endfor %}
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
 
       <!-- Classification Report -->
-      {% if has_model and report and target_names %}
-        <h5 class="mt-4">Classification Report</h5>
-        <table class="table table-striped text-center">
-          <thead>
-            <tr>
-              <th>Class</th>
-              <th>Precision</th>
-              <th>Recall</th>
-              <th>F1-score</th>
-              <th>Support</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for cls in target_names %}
-            <tr>
-              <td>{{ cls }}</td>
-              <td>{{ "%.3f"|format(report[cls]['precision']) }}</td>
-              <td>{{ "%.3f"|format(report[cls]['recall']) }}</td>
-              <td>{{ "%.3f"|format(report[cls]['f1-score']) }}</td>
-              <td>{{ report[cls]['support'] }}</td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      {% elif has_model %}
-        <div class="alert alert-warning">
-          <p>Classification report not available.</p>
-        </div>
-      {% else %}
-        <div class="alert alert-info">
-          <p>Rule-based systems don't have classification reports.</p>
-        </div>
-      {% endif %}
+      <h5 class="mt-4">Classification Report</h5>
+      <table class="table table-striped text-center">
+        <thead>
+          <tr>
+            <th>Class</th>
+            <th>Precision</th>
+            <th>Recall</th>
+            <th>F1-score</th>
+            <th>Support</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for cls in target_names %}
+          <tr>
+            <td>{{ cls }}</td>
+            <td>{{ "%.3f"|format(report[cls]['precision']) }}</td>
+            <td>{{ "%.3f"|format(report[cls]['recall']) }}</td>
+            <td>{{ "%.3f"|format(report[cls]['f1-score']) }}</td>
+            <td>{{ report[cls]['support'] }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
 
-      <!-- Navigation Buttons -->
-      <div class="mt-4">
-        {% if cancer_type == "Breast Cancer" %}
-          <a href="/" class="btn btn-secondary me-2">← Back to Breast Cancer Prediction</a>
-          <a href="/clustering_bc" class="btn btn-outline-primary">View Clustering</a>
-        {% elif cancer_type == "Lung Cancer" %}
-          <a href="/lung" class="btn btn-secondary me-2">← Back to Lung Cancer Prediction</a>
-          <a href="/clustering_lc" class="btn btn-outline-primary">View Clustering</a>
-        {% elif cancer_type == "Prostate Cancer" %}
-          <a href="/prostate" class="btn btn-secondary me-2">← Back to Prostate Cancer Prediction</a>
-          <a href="/clustering_pc" class="btn btn-outline-primary">View Clustering</a>
-        {% else %}
-          <a href="/" class="btn btn-secondary">← Back to Home</a>
-        {% endif %}
-      </div>
+      <!-- Back Button -->
+      <a href="/" class="btn btn-secondary mt-3">← Back to Prediction</a>
     </div>
   </div>
 </div>
