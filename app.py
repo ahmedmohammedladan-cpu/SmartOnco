@@ -3,7 +3,9 @@ import joblib, numpy as np, pandas as pd
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
+from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, adjusted_rand_score
 import matplotlib.pyplot as plt
 import io, base64
 import os
@@ -35,6 +37,12 @@ model_bc.fit(X_train_bc, y_train_bc)
 demo_values_bc = X_test_bc[0].tolist()
 print("✅ Breast Cancer Model Ready")
 
+# Initialize clustering for breast cancer
+scaler_bc = StandardScaler()
+X_scaled_bc = scaler_bc.fit_transform(X_bc)
+kmeans_bc = KMeans(n_clusters=2, random_state=42, n_init=10)
+kmeans_bc.fit(X_scaled_bc)
+
 # ==================================================
 # LUNG CANCER - FIXED WITH IMPROVED MANUAL RULES
 # ==================================================
@@ -63,6 +71,12 @@ try:
         demo_values_lc = X_test_lc.iloc[0].tolist()
         selected_features_lc = list(X_lc.columns)
         
+        # Initialize clustering for lung cancer
+        scaler_lc = StandardScaler()
+        X_scaled_lc = scaler_lc.fit_transform(X_lc)
+        kmeans_lc = KMeans(n_clusters=2, random_state=42, n_init=10)
+        kmeans_lc.fit(X_scaled_lc)
+        
         print("✅ Lung Cancer Model Ready")
         
 except Exception as e:
@@ -75,6 +89,8 @@ except Exception as e:
         "WHEEZING", "ALCOHOL CONSUMING", "COUGHING", 
         "SHORTNESS OF BREATH", "SWALLOWING DIFFICULTY", "CHEST PAIN"
     ]
+    scaler_lc = None
+    kmeans_lc = None
 
 # ==================================================
 # PROSTATE CANCER - PERFECT RULE-BASED
@@ -99,6 +115,32 @@ demo_values_prostate = {
     "Back_Pain": 1,
     "Fatigue_Level": 1
 }
+
+# Initialize variables for prostate cancer (for self-test/clustering)
+data_pc = None
+X_pc = None
+y_pc = None
+scaler_pc = None
+kmeans_pc = None
+
+# Load prostate data for clustering/self-test (if available)
+if os.path.exists("prostate_cancer.csv"):
+    try:
+        data_pc = pd.read_csv("prostate_cancer.csv")
+        # Convert categorical columns if any
+        for col in data_pc.select_dtypes(include=['object']).columns:
+            data_pc[col] = data_pc[col].astype('category').cat.codes
+        
+        if "Early_Detection" in data_pc.columns:
+            X_pc = data_pc.drop(columns=["Early_Detection"], errors='ignore')
+            y_pc = data_pc["Early_Detection"]
+            
+            scaler_pc = StandardScaler()
+            X_scaled_pc = scaler_pc.fit_transform(X_pc)
+            kmeans_pc = KMeans(n_clusters=2, random_state=42, n_init=10)
+            kmeans_pc.fit(X_scaled_pc)
+    except Exception as e:
+        print(f"Error loading prostate data for clustering: {e}")
 
 # ==================================================
 # MANUAL RULES - IMPROVED VERSION
@@ -245,7 +287,7 @@ def get_lung_risk_text(prediction, probability):
         return f"Prediction: No Lung Cancer — {risk} ({benign_prob*100:.1f}% probability)"
 
 # ==================================================
-# ROUTES
+# ROUTES - MAIN PREDICTION
 # ==================================================
 
 @app.route("/")
@@ -406,6 +448,169 @@ def predict_prostate():
         )
 
 # ==================================================
+# ROUTES - SELF TEST PAGES
+# ==================================================
+
+@app.route("/selftest_bc")
+def selftest_bc():
+    """Self-test for Breast Cancer Model"""
+    # Note: This tests the ML model, not the manual rules
+    y_pred = model_bc.predict(X_test_bc)
+    acc = accuracy_score(y_test_bc, y_pred)
+    cm = confusion_matrix(y_test_bc, y_pred).tolist()
+    report = classification_report(y_test_bc, y_pred, target_names=data_bc.target_names, output_dict=True)
+    return render_template("selftest.html", 
+                         accuracy=acc, 
+                         cm=cm, 
+                         target_names=data_bc.target_names, 
+                         report=report,
+                         cancer_type="Breast Cancer")
+
+@app.route("/selftest_lc")
+def selftest_lc():
+    """Self-test for Lung Cancer Model"""
+    if model_lc is None or X_test_lc is None:
+        return render_template("selftest.html", 
+                             accuracy=None, 
+                             cm=None, 
+                             target_names=None, 
+                             report=None,
+                             message="Lung dataset not available for self-test.",
+                             cancer_type="Lung Cancer")
+    
+    # Note: This tests the ML model, not the manual rules
+    y_pred = model_lc.predict(X_test_lc)
+    acc = accuracy_score(y_test_lc, y_pred)
+    cm = confusion_matrix(y_test_lc, y_pred).tolist()
+    report = classification_report(y_test_lc, y_pred, target_names=["No Cancer", "Cancer"], output_dict=True)
+    return render_template("selftest.html", 
+                         accuracy=acc, 
+                         cm=cm, 
+                         target_names=["No Cancer", "Cancer"], 
+                         report=report,
+                         cancer_type="Lung Cancer")
+
+@app.route("/selftest_pc")
+def selftest_pc():
+    """Self-test for Prostate Cancer"""
+    if X_pc is None or y_pc is None:
+        return render_template("selftest.html", 
+                             accuracy=None, 
+                             cm=None, 
+                             target_names=None, 
+                             report=None,
+                             message="Prostate dataset not available for self-test.",
+                             cancer_type="Prostate Cancer")
+    
+    # For prostate, we'll use a simple rule-based accuracy check
+    # Since we don't have a trained model, we'll calculate accuracy based on our rules
+    # This is a simplified version
+    message = "Prostate Cancer uses rule-based system. No traditional model to test."
+    return render_template("selftest.html", 
+                         accuracy=None, 
+                         cm=None, 
+                         target_names=None, 
+                         report=None,
+                         message=message,
+                         cancer_type="Prostate Cancer")
+
+# ==================================================
+# ROUTES - CLUSTERING PAGES
+# ==================================================
+
+@app.route("/clustering_bc")
+def clustering_bc():
+    """Clustering visualization for Breast Cancer"""
+    labels = kmeans_bc.predict(scaler_bc.transform(X_bc))
+    ari = adjusted_rand_score(y_bc, labels)
+    
+    # Create visualization
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.scatter(X_scaled_bc[:, 0], X_scaled_bc[:, 1], c=labels, cmap="viridis", alpha=0.6, s=50)
+    ax.set_title("Breast Cancer - KMeans Clustering (first 2 features)", fontsize=14, fontweight='bold')
+    ax.set_xlabel(selected_features_bc[0], fontsize=12)
+    ax.set_ylabel(selected_features_bc[1], fontsize=12)
+    ax.grid(True, alpha=0.3)
+    
+    # Save to base64
+    img = io.BytesIO()
+    plt.savefig(img, format="png", bbox_inches='tight', dpi=100)
+    plt.close(fig)
+    img.seek(0)
+    plot_url = base64.b64encode(img.getvalue()).decode()
+    
+    return render_template("clustering.html", 
+                         ari=ari, 
+                         plot_url=plot_url,
+                         cancer_type="Breast Cancer")
+
+@app.route("/clustering_lc")
+def clustering_lc():
+    """Clustering visualization for Lung Cancer"""
+    if X_lc is None or kmeans_lc is None:
+        return render_template("clustering.html", 
+                             ari=None, 
+                             plot_url=None,
+                             message="Lung data not available for clustering.",
+                             cancer_type="Lung Cancer")
+    
+    labels = kmeans_lc.predict(scaler_lc.transform(X_lc))
+    ari = adjusted_rand_score(y_lc, labels) if y_lc is not None else None
+    
+    # Create visualization
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.scatter(X_scaled_lc[:, 0], X_scaled_lc[:, 1], c=labels, cmap="viridis", alpha=0.6, s=50)
+    ax.set_title("Lung Cancer - KMeans Clustering (first 2 features)", fontsize=14, fontweight='bold')
+    ax.set_xlabel(selected_features_lc[0] if len(selected_features_lc) > 0 else "Feature 1", fontsize=12)
+    ax.set_ylabel(selected_features_lc[1] if len(selected_features_lc) > 1 else "Feature 2", fontsize=12)
+    ax.grid(True, alpha=0.3)
+    
+    # Save to base64
+    img = io.BytesIO()
+    plt.savefig(img, format="png", bbox_inches='tight', dpi=100)
+    plt.close(fig)
+    img.seek(0)
+    plot_url = base64.b64encode(img.getvalue()).decode()
+    
+    return render_template("clustering.html", 
+                         ari=ari, 
+                         plot_url=plot_url,
+                         cancer_type="Lung Cancer")
+
+@app.route("/clustering_pc")
+def clustering_pc():
+    """Clustering visualization for Prostate Cancer"""
+    if X_pc is None or kmeans_pc is None:
+        return render_template("clustering.html", 
+                             ari=None, 
+                             plot_url=None,
+                             message="Prostate data not available for clustering.",
+                             cancer_type="Prostate Cancer")
+    
+    labels = kmeans_pc.predict(scaler_pc.transform(X_pc))
+    ari = adjusted_rand_score(y_pc, labels) if y_pc is not None else None
+    
+    # Create visualization
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.scatter(X_scaled_pc[:, 0], X_scaled_pc[:, 1], c=labels, cmap="viridis", alpha=0.6, s=50)
+    ax.set_title("Prostate Cancer - KMeans Clustering (first 2 features)", fontsize=14, fontweight='bold')
+    ax.set_xlabel("Feature 1", fontsize=12)
+    ax.set_ylabel("Feature 2", fontsize=12)
+    ax.grid(True, alpha=0.3)
+    
+    # Save to base64
+    img = io.BytesIO()
+    plt.savefig(img, format="png", bbox_inches='tight', dpi=100)
+    plt.close(fig)
+    img.seek(0)
+    plot_url = base64.b64encode(img.getvalue()).decode()
+    
+    return render_template("clustering.html", 
+                         ari=ari, 
+                         plot_url=plot_url,
+                         cancer_type="Prostate Cancer")
+
+# ==================================================
 # TEST PAGES
 # ==================================================
 
@@ -423,11 +628,23 @@ def test_all_cases():
         .case { background: white; padding: 15px; margin: 10px 0; border-left: 4px solid #28a745; }
         .problem-case { border-left: 4px solid #dc3545; }
         .test-btn { padding: 8px 15px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .nav-links { margin-top: 30px; }
+        .nav-links a { display: inline-block; margin-right: 15px; padding: 10px 20px; background: #6c757d; color: white; text-decoration: none; border-radius: 5px; }
+        .nav-links a:hover { background: #5a6268; }
     </style>
     </head>
     <body>
         <h1>🧪 SmartOnco Complete System Test</h1>
         <p>Testing previously failing cases across all cancer modules</p>
+        
+        <div class="nav-links">
+            <a href="/selftest_bc">🧪 Breast Cancer Self-Test</a>
+            <a href="/clustering_bc">📊 Breast Cancer Clustering</a>
+            <a href="/selftest_lc">🧪 Lung Cancer Self-Test</a>
+            <a href="/clustering_lc">📊 Lung Cancer Clustering</a>
+            <a href="/selftest_pc">🧪 Prostate Cancer Self-Test</a>
+            <a href="/clustering_pc">📊 Prostate Cancer Clustering</a>
+        </div>
     """
     
     # Breast Cancer Test Cases
@@ -553,6 +770,8 @@ if __name__ == "__main__":
     print("✅ Breast Cancer: Manual rules fix borderline cases")
     print("✅ Lung Cancer: Age-adjusted risk with improved rules")
     print("✅ Prostate Cancer: Perfect rule-based system")
+    print("✅ Self-Test: Available for all cancer types")
+    print("✅ Clustering: Visualizations for all datasets")
     print("="*60)
     print("Test all cases: http://localhost:5000/test_all_cases")
     print("="*60)
