@@ -40,14 +40,15 @@ def predict_breast_manual(features):
     worst_concave_pts = features[4]
 
     if worst_radius > 18 or worst_area > 1000:
-        return "malignant", "High"
+        return "Malignant (Cancerous)", "High"
 
     if worst_radius > 14 and worst_concave_pts > 0.05:
-        return "malignant", "Moderate"
+        return "Malignant (Cancerous)", "Moderate"
 
     if worst_radius < 12 and worst_area < 500:
-        return "benign", "Low"
+        return "Benign (Non-Cancerous)", "Low"
 
+    # fallback to ML model
     return "ml_model", None
 
 # ==================================================
@@ -80,6 +81,20 @@ def predict_lung_manual(features):
 # ==================================================
 # WEB ROUTES
 # ==================================================
+def format_result(prediction, risk):
+    """
+    Returns a professionally formatted multi-line string for display
+    """
+    if "Malignant" in prediction or "Cancer Detected" in prediction:
+        recommendation = "Consult a certified oncologist for further medical evaluation."
+    elif "Suspicious" in prediction:
+        recommendation = "Seek professional medical consultation for confirmation."
+    else:
+        recommendation = "Routine medical checkups are advised."
+
+    result = f"Prediction: {prediction}\nRisk Level: {risk}\nRecommendation: {recommendation}"
+    return result
+
 @app.route("/")
 def home():
     return render_template(
@@ -103,19 +118,7 @@ def predict_bc():
         prediction = "Malignant (Cancerous)" if pred == 0 else "Benign (Non-Cancerous)"
         risk = "Moderate"
 
-    # Format the result in separate lines
-    prediction_text = (
-        f"Prediction: {prediction}\n"
-        f"Risk Level: {risk}\n"
-        "Recommendation: "
-    )
-    if "Malignant" in prediction:
-        prediction_text += "Consult a certified oncologist for further medical evaluation."
-    else:
-        prediction_text += "Routine medical checkups are advised."
-
-    # Replace \n with <br> for HTML rendering
-    prediction_text_html = prediction_text.replace("\n", "<br>")
+    prediction_text_html = format_result(prediction, risk).replace("\n", "<br>")
 
     return render_template(
         "index.html",
@@ -137,13 +140,7 @@ def predict_lc():
 
     prediction, risk = predict_lung_manual(feature_vals)
 
-    prediction_text = (
-        f"Prediction: {prediction}\n"
-        f"Risk Level: {risk}\n"
-        "Recommendation: Seek professional medical consultation for confirmation."
-    )
-
-    prediction_text_html = prediction_text.replace("\n", "<br>")
+    prediction_text_html = format_result(prediction, risk).replace("\n", "<br>")
 
     return render_template(
         "lung_cancer.html",
@@ -160,19 +157,13 @@ def predict_prostate():
     biopsy = int(request.form.get("feature_prostate3", 0))
 
     if biopsy == 1 or psa > 10:
-        prediction_text = (
-            "Prediction: Prostate Cancer Detected\n"
-            "Risk Level: High\n"
-            "Recommendation: Immediate consultation with a urologist or oncologist is advised."
-        )
+        prediction = "Prostate Cancer Detected"
+        risk = "High"
     else:
-        prediction_text = (
-            "Prediction: No Prostate Cancer Detected\n"
-            "Risk Level: Low\n"
-            "Recommendation: Maintain regular medical screening."
-        )
+        prediction = "No Prostate Cancer Detected"
+        risk = "Low"
 
-    prediction_text_html = prediction_text.replace("\n", "<br>")
+    prediction_text_html = format_result(prediction, risk).replace("\n", "<br>")
 
     return render_template(
         "prostate.html",
@@ -180,7 +171,7 @@ def predict_prostate():
     )
 
 # ==================================================
-# API ROUTE (FOR OTHER SYSTEMS)
+# API ROUTE
 # ==================================================
 @app.route("/api/predict/breast", methods=["POST"])
 def api_predict_breast():
@@ -199,22 +190,13 @@ def api_predict_breast():
             prediction = "Malignant (Cancerous)" if pred == 0 else "Benign (Non-Cancerous)"
             risk = "Moderate"
 
-        # API result with clear newlines
-        prediction_text = (
-            f"Prediction: {prediction}\n"
-            f"Risk Level: {risk}\n"
-            "Recommendation: "
-        )
-        if "Malignant" in prediction:
-            prediction_text += "Consult a certified oncologist for further medical evaluation."
-        else:
-            prediction_text += "Routine medical checkups are advised."
+        full_result = format_result(prediction, risk)
 
         response = {
             "prediction": prediction,
             "risk_level": risk,
-            "recommendation": prediction_text.split("\n")[2],  # Only the recommendation
-            "full_result": prediction_text,
+            "recommendation": full_result.split("\n")[2],  # only recommendation
+            "full_result": full_result,
             "disclaimer": (
                 "This system is for decision support only "
                 "and does not replace professional medical diagnosis."
@@ -223,8 +205,8 @@ def api_predict_breast():
 
         return jsonify(response)
 
-    except Exception:
-        return jsonify({"error": "Invalid request"}), 500
+    except Exception as e:
+        return jsonify({"error": "Invalid request", "details": str(e)}), 500
 
 # ==================================================
 # RUN APP
@@ -233,3 +215,4 @@ import os
 if __name__ == "__main__": 
     port = int(os.environ.get("PORT", 5000)) 
     app.run(host="0.0.0.0", port=port, debug=True)
+
