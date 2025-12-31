@@ -4,6 +4,7 @@ import pandas as pd
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
+import os
 
 app = Flask(__name__)
 
@@ -102,24 +103,25 @@ def predict_bc():
         prediction = "Malignant (Cancerous)" if pred == 0 else "Benign (Non-Cancerous)"
         risk = "Moderate"
 
-    if prediction == "malignant" or "Malignant" in prediction:
-        prediction_text = (
-            "Prediction: Malignant (Cancerous)\n"
-            f"Risk Level: {risk}\n\n"
-            "Recommendation: Consult a certified oncologist for further medical evaluation."
-        )
+    # Format the result in separate lines
+    prediction_text = (
+        f"Prediction: {prediction}\n"
+        f"Risk Level: {risk}\n"
+        "Recommendation: "
+    )
+    if "Malignant" in prediction:
+        prediction_text += "Consult a certified oncologist for further medical evaluation."
     else:
-        prediction_text = (
-            "Prediction: Benign (Non-Cancerous)\n"
-            f"Risk Level: {risk}\n\n"
-            "Recommendation: Routine medical checkups are advised."
-        )
+        prediction_text += "Routine medical checkups are advised."
+
+    # Replace \n with <br> for HTML rendering
+    prediction_text_html = prediction_text.replace("\n", "<br>")
 
     return render_template(
         "index.html",
         features_bc=selected_features_bc,
         demo_values_bc=demo_values_bc,
-        prediction_text=prediction_text
+        prediction_text=prediction_text_html
     )
 
 @app.route("/lung")
@@ -137,18 +139,17 @@ def predict_lc():
 
     prediction_text = (
         f"Prediction: {prediction}\n"
-        f"Risk Level: {risk}\n\n"
+        f"Risk Level: {risk}\n"
         "Recommendation: Seek professional medical consultation for confirmation."
     )
 
+    prediction_text_html = prediction_text.replace("\n", "<br>")
+
     return render_template(
         "lung_cancer.html",
-        prediction_text=prediction_text
+        prediction_text=prediction_text_html
     )
 
-# ==================================================
-# PROSTATE CANCER – RULE BASED
-# ==================================================
 @app.route("/prostate")
 def prostate_page():
     return render_template("prostate.html")
@@ -161,19 +162,21 @@ def predict_prostate():
     if biopsy == 1 or psa > 10:
         prediction_text = (
             "Prediction: Prostate Cancer Detected\n"
-            "Risk Level: High\n\n"
+            "Risk Level: High\n"
             "Recommendation: Immediate consultation with a urologist or oncologist is advised."
         )
     else:
         prediction_text = (
             "Prediction: No Prostate Cancer Detected\n"
-            "Risk Level: Low\n\n"
+            "Risk Level: Low\n"
             "Recommendation: Maintain regular medical screening."
         )
 
+    prediction_text_html = prediction_text.replace("\n", "<br>")
+
     return render_template(
         "prostate.html",
-        prediction_text=prediction_text
+        prediction_text=prediction_text_html
     )
 
 # ==================================================
@@ -196,14 +199,22 @@ def api_predict_breast():
             prediction = "Malignant (Cancerous)" if pred == 0 else "Benign (Non-Cancerous)"
             risk = "Moderate"
 
+        # API result with clear newlines
+        prediction_text = (
+            f"Prediction: {prediction}\n"
+            f"Risk Level: {risk}\n"
+            "Recommendation: "
+        )
+        if "Malignant" in prediction:
+            prediction_text += "Consult a certified oncologist for further medical evaluation."
+        else:
+            prediction_text += "Routine medical checkups are advised."
+
         response = {
             "prediction": prediction,
             "risk_level": risk,
-            "recommendation": (
-                "Consult a certified oncologist for further medical evaluation."
-                if "Malignant" in prediction
-                else "Routine medical checkups are advised."
-            ),
+            "recommendation": prediction_text.split("\n")[2],  # Only the recommendation
+            "full_result": prediction_text,
             "disclaimer": (
                 "This system is for decision support only "
                 "and does not replace professional medical diagnosis."
@@ -218,9 +229,6 @@ def api_predict_breast():
 # ==================================================
 # RUN APP
 # ==================================================
-import os
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
