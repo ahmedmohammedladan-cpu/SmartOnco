@@ -61,7 +61,6 @@ def predict_lung_manual(features):
     chest_pain = int(features[14])
 
     risk_score = 0
-
     if age > 60:
         risk_score += 3
     if smoking == 2:
@@ -79,7 +78,7 @@ def predict_lung_manual(features):
         return "No Cancer Detected", "Low"
 
 # ==================================================
-# WEB ROUTES
+# RESULT FORMATTING
 # ==================================================
 def format_result(prediction, risk):
     """
@@ -95,6 +94,9 @@ def format_result(prediction, risk):
     result = f"Prediction: {prediction}\nRisk Level: {risk}\nRecommendation: {recommendation}"
     return result
 
+# ==================================================
+# WEB ROUTES
+# ==================================================
 @app.route("/")
 def home():
     return render_template(
@@ -118,13 +120,14 @@ def predict_bc():
         prediction = "Malignant (Cancerous)" if pred == 0 else "Benign (Non-Cancerous)"
         risk = "Moderate"
 
-    prediction_text_html = format_result(prediction, risk).replace("\n", "<br>")
+    # Send plain text to template; template will render line breaks
+    prediction_text = format_result(prediction, risk)
 
     return render_template(
         "index.html",
         features_bc=selected_features_bc,
         demo_values_bc=demo_values_bc,
-        prediction_text=prediction_text_html
+        prediction_text=prediction_text
     )
 
 @app.route("/lung")
@@ -139,12 +142,11 @@ def predict_lc():
     ]
 
     prediction, risk = predict_lung_manual(feature_vals)
-
-    prediction_text_html = format_result(prediction, risk).replace("\n", "<br>")
+    prediction_text = format_result(prediction, risk)
 
     return render_template(
         "lung_cancer.html",
-        prediction_text=prediction_text_html
+        prediction_text=prediction_text
     )
 
 @app.route("/prostate")
@@ -163,11 +165,11 @@ def predict_prostate():
         prediction = "No Prostate Cancer Detected"
         risk = "Low"
 
-    prediction_text_html = format_result(prediction, risk).replace("\n", "<br>")
+    prediction_text = format_result(prediction, risk)
 
     return render_template(
         "prostate.html",
-        prediction_text=prediction_text_html
+        prediction_text=prediction_text
     )
 
 # ==================================================
@@ -195,12 +197,9 @@ def api_predict_breast():
         response = {
             "prediction": prediction,
             "risk_level": risk,
-            "recommendation": full_result.split("\n")[2],  # only recommendation
+            "recommendation": full_result.split("\n")[2],
             "full_result": full_result,
-            "disclaimer": (
-                "This system is for decision support only "
-                "and does not replace professional medical diagnosis."
-            )
+            "disclaimer": "This system is for decision support only and does not replace professional medical diagnosis."
         }
 
         return jsonify(response)
@@ -211,8 +210,6 @@ def api_predict_breast():
 # ==================================================
 # RUN APP
 # ==================================================
-import os 
-if __name__ == "__main__": 
-    port = int(os.environ.get("PORT", 5000)) 
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
