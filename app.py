@@ -1,12 +1,9 @@
-from flask import Flask, render_template, request
-import joblib, numpy as np, pandas as pd
+from flask import Flask, render_template, request, jsonify
+import numpy as np
+import pandas as pd
 from sklearn.datasets import load_breast_cancer
 from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.preprocessing import StandardScaler
-from sklearn.cluster import KMeans
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix
-import os
 
 app = Flask(__name__)
 
@@ -80,18 +77,22 @@ def predict_lung_manual(features):
         return "No Cancer Detected", "Low"
 
 # ==================================================
-# ROUTES
+# WEB ROUTES
 # ==================================================
 @app.route("/")
 def home():
-    return render_template("index.html",
-                           features_bc=selected_features_bc,
-                           demo_values_bc=demo_values_bc)
+    return render_template(
+        "index.html",
+        features_bc=selected_features_bc,
+        demo_values_bc=demo_values_bc
+    )
 
 @app.route("/predict_bc", methods=["POST"])
 def predict_bc():
-    feature_vals = [float(request.form.get(f"feature_bc{i+1}"))
-                    for i in range(len(selected_features_bc))]
+    feature_vals = [
+        float(request.form.get(f"feature_bc{i+1}"))
+        for i in range(len(selected_features_bc))
+    ]
 
     prediction, risk = predict_breast_manual(feature_vals)
 
@@ -101,7 +102,7 @@ def predict_bc():
         prediction = "Malignant (Cancerous)" if pred == 0 else "Benign (Non-Cancerous)"
         risk = "Moderate"
 
-    if prediction == "malignant":
+    if prediction == "malignant" or "Malignant" in prediction:
         prediction_text = (
             "Prediction: Malignant (Cancerous)\n"
             f"Risk Level: {risk}\n\n"
@@ -114,10 +115,12 @@ def predict_bc():
             "Recommendation: Routine medical checkups are advised."
         )
 
-    return render_template("index.html",
-                           features_bc=selected_features_bc,
-                           demo_values_bc=demo_values_bc,
-                           prediction_text=prediction_text)
+    return render_template(
+        "index.html",
+        features_bc=selected_features_bc,
+        demo_values_bc=demo_values_bc,
+        prediction_text=prediction_text
+    )
 
 @app.route("/lung")
 def lung_page():
@@ -125,8 +128,10 @@ def lung_page():
 
 @app.route("/predict_lc", methods=["POST"])
 def predict_lc():
-    feature_vals = [float(request.form.get(f"feature_lc{i+1}", 1))
-                    for i in range(15)]
+    feature_vals = [
+        float(request.form.get(f"feature_lc{i+1}", 1))
+        for i in range(15)
+    ]
 
     prediction, risk = predict_lung_manual(feature_vals)
 
@@ -136,8 +141,10 @@ def predict_lc():
         "Recommendation: Seek professional medical consultation for confirmation."
     )
 
-    return render_template("lung_cancer.html",
-                           prediction_text=prediction_text)
+    return render_template(
+        "lung_cancer.html",
+        prediction_text=prediction_text
+    )
 
 # ==================================================
 # PROSTATE CANCER – RULE BASED
@@ -164,8 +171,49 @@ def predict_prostate():
             "Recommendation: Maintain regular medical screening."
         )
 
-    return render_template("prostate.html",
-                           prediction_text=prediction_text)
+    return render_template(
+        "prostate.html",
+        prediction_text=prediction_text
+    )
+
+# ==================================================
+# API ROUTE (FOR OTHER SYSTEMS)
+# ==================================================
+@app.route("/api/predict/breast", methods=["POST"])
+def api_predict_breast():
+    try:
+        data = request.get_json()
+        feature_vals = data.get("features", [])
+
+        if len(feature_vals) != len(selected_features_bc):
+            return jsonify({"error": "Invalid feature count"}), 400
+
+        prediction, risk = predict_breast_manual(feature_vals)
+
+        if prediction == "ml_model":
+            df = pd.DataFrame([feature_vals], columns=selected_features_bc)
+            pred = model_bc.predict(df)[0]
+            prediction = "Malignant (Cancerous)" if pred == 0 else "Benign (Non-Cancerous)"
+            risk = "Moderate"
+
+        response = {
+            "prediction": prediction,
+            "risk_level": risk,
+            "recommendation": (
+                "Consult a certified oncologist for further medical evaluation."
+                if "Malignant" in prediction
+                else "Routine medical checkups are advised."
+            ),
+            "disclaimer": (
+                "This system is for decision support only "
+                "and does not replace professional medical diagnosis."
+            )
+        }
+
+        return jsonify(response)
+
+    except Exception:
+        return jsonify({"error": "Invalid request"}), 500
 
 # ==================================================
 # RUN APP
