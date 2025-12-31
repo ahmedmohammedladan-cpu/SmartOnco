@@ -48,7 +48,6 @@ def predict_breast_manual(features):
     if worst_radius < 12 and worst_area < 500:
         return "Benign (Non-Cancerous)", "Low"
 
-    # fallback to ML model
     return "ml_model", None
 
 # ==================================================
@@ -82,7 +81,7 @@ def predict_lung_manual(features):
 # ==================================================
 def format_result(prediction, risk):
     """
-    Returns a professionally formatted multi-line string for display
+    Returns a professionally formatted result separated by comma and space
     """
     if "Malignant" in prediction or "Cancer Detected" in prediction:
         recommendation = "Consult a certified oncologist for further medical evaluation."
@@ -91,7 +90,8 @@ def format_result(prediction, risk):
     else:
         recommendation = "Routine medical checkups are advised."
 
-    result = f"Prediction: {prediction}\nRisk Level: {risk}\nRecommendation: {recommendation}"
+    # Join all info in one line
+    result = f"Prediction: {prediction}, Risk Level: {risk}, Recommendation: {recommendation}"
     return result
 
 # ==================================================
@@ -120,7 +120,6 @@ def predict_bc():
         prediction = "Malignant (Cancerous)" if pred == 0 else "Benign (Non-Cancerous)"
         risk = "Moderate"
 
-    # Send plain text to template; template will render line breaks
     prediction_text = format_result(prediction, risk)
 
     return render_template(
@@ -197,7 +196,7 @@ def api_predict_breast():
         response = {
             "prediction": prediction,
             "risk_level": risk,
-            "recommendation": full_result.split("\n")[2],
+            "recommendation": full_result.split(", ")[2],  # only recommendation
             "full_result": full_result,
             "disclaimer": "This system is for decision support only and does not replace professional medical diagnosis."
         }
