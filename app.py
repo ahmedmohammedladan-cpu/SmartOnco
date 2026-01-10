@@ -2,18 +2,17 @@ from flask import Flask, render_template, request, jsonify
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import train_test_split, cross_val_score
+from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.cluster import KMeans
-from sklearn.metrics import silhouette_score, adjusted_rand_score, accuracy_score, classification_report, confusion_matrix
-import os
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, adjusted_rand_score, silhouette_score
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import io
 import base64
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
+import os
 
 app = Flask(__name__)
 
@@ -40,183 +39,48 @@ model_bc.fit(X_train_bc, y_train_bc)
 
 demo_values_bc = X_test_bc[0].tolist()
 
+# Initialize clustering for breast cancer
+scaler_bc = StandardScaler()
+X_scaled_bc = scaler_bc.fit_transform(X_bc)
+kmeans_bc = KMeans(n_clusters=2, random_state=42, n_init=10)
+kmeans_bc.fit(X_scaled_bc)
+
 # ==================================================
 # SIMULATED DATA FOR LUNG AND PROSTATE (for clustering/self-test)
 # ==================================================
 # Create simple simulated data for lung cancer (15 features as per your form)
 np.random.seed(42)
 n_samples = 300
+
+# Lung cancer simulation
 X_lung_sim = np.random.randn(n_samples, 15)
-# Create some structure for clustering
-X_lung_sim[:, 0] += np.random.randn(n_samples) * 0.5  # Age-like feature
-X_lung_sim[:, 1] += np.random.randn(n_samples) * 0.5  # Smoking-like feature
+# Add some structure
+X_lung_sim[:, 1] += np.random.randn(n_samples) * 0.5  # Age-like feature
+X_lung_sim[:, 2] += np.random.randn(n_samples) * 0.5  # Smoking-like feature
 X_lung_sim[:, 11] += np.random.randn(n_samples) * 0.5  # Coughing-like feature
 X_lung_sim[:, 14] += np.random.randn(n_samples) * 0.5  # Chest pain-like feature
 
-# Create labels for lung simulation (3 classes)
 y_lung_sim = np.zeros(n_samples, dtype=int)
-score = X_lung_sim[:, 0] + X_lung_sim[:, 1] * 1.5 + X_lung_sim[:, 11] + X_lung_sim[:, 14]
+score = X_lung_sim[:, 1] + X_lung_sim[:, 2] * 1.5 + X_lung_sim[:, 11] + X_lung_sim[:, 14]
 y_lung_sim[score > 1] = 1
 y_lung_sim[score > 2.5] = 2
 
-# Create simple simulated data for prostate cancer (10 features as per your form)
+# Prostate cancer simulation
 X_prostate_sim = np.random.randn(n_samples, 10)
-# Create some structure
 X_prostate_sim[:, 1] += np.random.randn(n_samples) * 0.5  # PSA-like feature
 X_prostate_sim[:, 2] += np.random.randn(n_samples) * 0.5  # Biopsy-like feature
-
-# Create labels for prostate simulation (2 classes)
 y_prostate_sim = ((X_prostate_sim[:, 1] > 0.5) | (X_prostate_sim[:, 2] > 0.7)).astype(int)
 
-# Train simple models for lung and prostate for self-test
-model_lung_sim = DecisionTreeClassifier(random_state=42)
-model_lung_sim.fit(X_lung_sim, y_lung_sim)
+# Initialize clustering for lung and prostate
+scaler_lung = StandardScaler()
+X_scaled_lung = scaler_lung.fit_transform(X_lung_sim)
+kmeans_lung = KMeans(n_clusters=3, random_state=42, n_init=10)
+kmeans_lung.fit(X_scaled_lung)
 
-model_prostate_sim = DecisionTreeClassifier(random_state=42)
-model_prostate_sim.fit(X_prostate_sim, y_prostate_sim)
-
-# ==================================================
-# CLUSTERING FUNCTION
-# ==================================================
-def perform_clustering(data_type, n_clusters=2):
-    """Perform K-means clustering and return results"""
-    try:
-        if data_type == "breast":
-            data = X_bc
-            true_labels = y_bc
-        elif data_type == "lung":
-            data = X_lung_sim
-            true_labels = y_lung_sim
-        elif data_type == "prostate":
-            data = X_prostate_sim
-            true_labels = y_prostate_sim
-        else:
-            return {"error": f"Unknown data type: {data_type}"}
-        
-        # Standardize the data
-        scaler = StandardScaler()
-        data_scaled = scaler.fit_transform(data)
-        
-        # Perform K-means clustering
-        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
-        cluster_labels = kmeans.fit_predict(data_scaled)
-        
-        # Calculate metrics
-        silhouette_avg = silhouette_score(data_scaled, cluster_labels)
-        
-        # Calculate Adjusted Rand Index
-        ari = adjusted_rand_score(true_labels, cluster_labels)
-        
-        # Perform PCA for visualization (2D)
-        pca = PCA(n_components=2)
-        data_pca = pca.fit_transform(data_scaled)
-        
-        # Create visualization
-        plt.figure(figsize=(10, 8))
-        
-        # Plot with true labels
-        plt.subplot(2, 1, 1)
-        scatter_true = plt.scatter(data_pca[:, 0], data_pca[:, 1], 
-                                   c=true_labels, cmap='tab10', 
-                                   alpha=0.7, edgecolors='w', s=60)
-        plt.colorbar(scatter_true, label='True Labels')
-        plt.xlabel('Principal Component 1')
-        plt.ylabel('Principal Component 2')
-        plt.title(f'{data_type.capitalize()} Cancer - True Class Distribution')
-        plt.grid(True, alpha=0.3)
-        
-        # Plot with cluster labels
-        plt.subplot(2, 1, 2)
-        scatter_cluster = plt.scatter(data_pca[:, 0], data_pca[:, 1], 
-                                      c=cluster_labels, cmap='tab10', 
-                                      alpha=0.7, edgecolors='w', s=60)
-        plt.colorbar(scatter_cluster, label='Cluster Labels')
-        plt.xlabel('Principal Component 1')
-        plt.ylabel('Principal Component 2')
-        plt.title(f'K-means Clustering Results (K={n_clusters})')
-        plt.grid(True, alpha=0.3)
-        
-        plt.tight_layout()
-        
-        # Save plot to base64 string
-        img = io.BytesIO()
-        plt.savefig(img, format='png', bbox_inches='tight', dpi=100)
-        img.seek(0)
-        plot_url = base64.b64encode(img.getvalue()).decode()
-        plt.close()
-        
-        return {
-            "success": True,
-            "ari": float(ari),
-            "plot_url": plot_url,
-            "silhouette_score": float(silhouette_avg),
-            "n_clusters": n_clusters,
-            "data_type": data_type
-        }
-        
-    except Exception as e:
-        return {"error": str(e), "success": False}
-
-# ==================================================
-# SELF-TEST FUNCTION
-# ==================================================
-def perform_self_test(data_type):
-    """Perform comprehensive model self-testing"""
-    try:
-        if data_type == "breast":
-            model = model_bc
-            X_test = X_test_bc
-            y_test = y_test_bc
-            X_train = X_train_bc
-            y_train = y_train_bc
-            target_names = ['Malignant', 'Benign']
-        elif data_type == "lung":
-            model = model_lung_sim
-            # Split the simulated data
-            X_train, X_test, y_train, y_test = train_test_split(
-                X_lung_sim, y_lung_sim, test_size=0.2, random_state=42
-            )
-            model.fit(X_train, y_train)  # Re-fit on train split
-            target_names = ['No Cancer', 'Suspicious', 'Cancer']
-        elif data_type == "prostate":
-            model = model_prostate_sim
-            # Split the simulated data
-            X_train, X_test, y_train, y_test = train_test_split(
-                X_prostate_sim, y_prostate_sim, test_size=0.2, random_state=42
-            )
-            model.fit(X_train, y_train)  # Re-fit on train split
-            target_names = ['No Cancer', 'Cancer']
-        else:
-            return {"error": f"Unknown data type: {data_type}"}
-        
-        # Make predictions
-        y_pred = model.predict(X_test)
-        
-        # Calculate accuracy
-        accuracy = accuracy_score(y_test, y_pred)
-        
-        # Cross-validation scores
-        cv_scores = cross_val_score(model, X_train, y_train, cv=5, scoring='accuracy')
-        
-        # Confusion matrix
-        cm = confusion_matrix(y_test, y_pred)
-        
-        # Classification report
-        report_dict = classification_report(y_test, y_pred, target_names=target_names, output_dict=True)
-        
-        return {
-            "success": True,
-            "accuracy": float(accuracy),
-            "cross_val_mean": float(cv_scores.mean()),
-            "cross_val_std": float(cv_scores.std()),
-            "confusion_matrix": cm.tolist(),
-            "classification_report": report_dict,
-            "target_names": target_names,
-            "data_type": data_type
-        }
-        
-    except Exception as e:
-        return {"error": str(e), "success": False}
+scaler_prostate = StandardScaler()
+X_scaled_prostate = scaler_prostate.fit_transform(X_prostate_sim)
+kmeans_prostate = KMeans(n_clusters=2, random_state=42, n_init=10)
+kmeans_prostate.fit(X_scaled_prostate)
 
 # ==================================================
 # MANUAL RULES – BREAST CANCER
@@ -280,6 +144,44 @@ def format_result(prediction, risk):
     # Join all info in one line
     result = f"Prediction: {prediction}, Risk Level: {risk}, Recommendation: {recommendation}"
     return result
+
+# ==================================================
+# CLUSTERING FUNCTIONS
+# ==================================================
+def create_clustering_plot(data_scaled, labels, true_labels, title):
+    """Create clustering visualization plot"""
+    plt.figure(figsize=(12, 5))
+    
+    # True labels plot
+    plt.subplot(1, 2, 1)
+    scatter1 = plt.scatter(data_scaled[:, 0], data_scaled[:, 1], 
+                          c=true_labels, cmap='viridis', 
+                          alpha=0.6, edgecolors='w', s=50)
+    plt.colorbar(scatter1, label='True Labels')
+    plt.xlabel('Standardized Feature 1')
+    plt.ylabel('Standardized Feature 2')
+    plt.title(f'{title} - True Labels')
+    
+    # Cluster labels plot
+    plt.subplot(1, 2, 2)
+    scatter2 = plt.scatter(data_scaled[:, 0], data_scaled[:, 1], 
+                          c=labels, cmap='viridis', 
+                          alpha=0.6, edgecolors='w', s=50)
+    plt.colorbar(scatter2, label='Cluster Labels')
+    plt.xlabel('Standardized Feature 1')
+    plt.ylabel('Standardized Feature 2')
+    plt.title(f'{title} - K-means Clustering')
+    
+    plt.tight_layout()
+    
+    # Save plot to base64 string
+    img = io.BytesIO()
+    plt.savefig(img, format='png', bbox_inches='tight', dpi=100)
+    img.seek(0)
+    plot_url = base64.b64encode(img.getvalue()).decode()
+    plt.close()
+    
+    return plot_url
 
 # ==================================================
 # WEB ROUTES
@@ -359,126 +261,154 @@ def predict_prostate():
     )
 
 # ==================================================
+# NEW ROUTES FOR SELF-TEST
+# ==================================================
+@app.route("/selftest_bc")
+def selftest_bc():
+    """Self-test for Breast Cancer Model"""
+    y_pred = model_bc.predict(X_test_bc)
+    acc = accuracy_score(y_test_bc, y_pred)
+    cm = confusion_matrix(y_test_bc, y_pred).tolist()
+    report = classification_report(y_test_bc, y_pred, target_names=data_bc.target_names, output_dict=True)
+    
+    # Convert report to match your template structure
+    formatted_report = {}
+    for cls in data_bc.target_names:
+        formatted_report[cls] = {
+            'precision': report[cls]['precision'],
+            'recall': report[cls]['recall'],
+            'f1-score': report[cls]['f1-score'],
+            'support': int(report[cls]['support'])
+        }
+    
+    return render_template("selftest.html", 
+                         accuracy=acc, 
+                         cm=cm, 
+                         target_names=data_bc.target_names, 
+                         report=formatted_report)
+
+@app.route("/selftest_lc")
+def selftest_lc():
+    """Self-test for Lung Cancer Model"""
+    # For lung cancer, we'll use simulated data and a simple model
+    model_lc = DecisionTreeClassifier(random_state=42)
+    X_train_lc, X_test_lc, y_train_lc, y_test_lc = train_test_split(
+        X_lung_sim, y_lung_sim, test_size=0.2, random_state=42
+    )
+    model_lc.fit(X_train_lc, y_train_lc)
+    
+    y_pred = model_lc.predict(X_test_lc)
+    acc = accuracy_score(y_test_lc, y_pred)
+    cm = confusion_matrix(y_test_lc, y_pred).tolist()
+    report = classification_report(y_test_lc, y_pred, target_names=["No Cancer", "Suspicious", "Cancer"], output_dict=True)
+    
+    # Convert report to match your template structure
+    formatted_report = {}
+    for cls in ["No Cancer", "Suspicious", "Cancer"]:
+        if cls in report:
+            formatted_report[cls] = {
+                'precision': report[cls]['precision'],
+                'recall': report[cls]['recall'],
+                'f1-score': report[cls]['f1-score'],
+                'support': int(report[cls]['support'])
+            }
+    
+    return render_template("selftest.html", 
+                         accuracy=acc, 
+                         cm=cm, 
+                         target_names=["No Cancer", "Suspicious", "Cancer"], 
+                         report=formatted_report)
+
+@app.route("/selftest_pc")
+def selftest_pc():
+    """Self-test for Prostate Cancer"""
+    # For prostate cancer, we'll use simulated data and a simple model
+    model_pc = DecisionTreeClassifier(random_state=42)
+    X_train_pc, X_test_pc, y_train_pc, y_test_pc = train_test_split(
+        X_prostate_sim, y_prostate_sim, test_size=0.2, random_state=42
+    )
+    model_pc.fit(X_train_pc, y_train_pc)
+    
+    y_pred = model_pc.predict(X_test_pc)
+    acc = accuracy_score(y_test_pc, y_pred)
+    cm = confusion_matrix(y_test_pc, y_pred).tolist()
+    report = classification_report(y_test_pc, y_pred, target_names=["No Cancer", "Cancer"], output_dict=True)
+    
+    # Convert report to match your template structure
+    formatted_report = {}
+    for cls in ["No Cancer", "Cancer"]:
+        formatted_report[cls] = {
+            'precision': report[cls]['precision'],
+            'recall': report[cls]['recall'],
+            'f1-score': report[cls]['f1-score'],
+            'support': int(report[cls]['support'])
+        }
+    
+    return render_template("selftest.html", 
+                         accuracy=acc, 
+                         cm=cm, 
+                         target_names=["No Cancer", "Cancer"], 
+                         report=formatted_report)
+
+# ==================================================
 # NEW ROUTES FOR CLUSTERING
 # ==================================================
-@app.route("/breast/clustering")
-def breast_clustering_page():
-    """Show clustering options for breast cancer"""
-    return render_template("cluster_form.html", cancer_type="breast")
-
-@app.route("/lung/clustering")
-def lung_clustering_page():
-    """Show clustering options for lung cancer"""
-    return render_template("cluster_form.html", cancer_type="lung")
-
-@app.route("/prostate/clustering")
-def prostate_clustering_page():
-    """Show clustering options for prostate cancer"""
-    return render_template("cluster_form.html", cancer_type="prostate")
-
-@app.route("/cluster/<data_type>", methods=["GET", "POST"])
-def perform_clustering_route(data_type):
-    """Perform clustering and show results"""
-    if data_type not in ["breast", "lung", "prostate"]:
-        return "Invalid cancer type", 404
+@app.route("/clustering_bc")
+def clustering_bc():
+    """Clustering visualization for Breast Cancer"""
+    labels = kmeans_bc.predict(X_scaled_bc)
+    ari = adjusted_rand_score(y_bc, labels)
+    silhouette = silhouette_score(X_scaled_bc, labels)
     
-    if request.method == "POST":
-        n_clusters = int(request.form.get("n_clusters", 2))
-    else:
-        n_clusters = int(request.args.get("n_clusters", 2))
-    
-    result = perform_clustering(data_type, n_clusters)
-    
-    if not result.get("success", False):
-        error_msg = result.get("error", "Unknown error occurred")
-        return render_template("error.html", error=error_msg)
+    # Create visualization
+    plot_url = create_clustering_plot(X_scaled_bc, labels, y_bc, "Breast Cancer")
     
     return render_template(
         "clustering.html",
-        ari=result["ari"],
-        plot_url=result["plot_url"],
-        cancer_type=data_type.capitalize(),
-        n_clusters=n_clusters,
-        silhouette_score=result.get("silhouette_score", 0.0)
-    )
-
-# ==================================================
-# NEW ROUTES FOR SELF-TEST
-# ==================================================
-@app.route("/breast/selftest")
-def breast_selftest_page():
-    """Run self-test for breast cancer model"""
-    result = perform_self_test("breast")
-    
-    if not result.get("success", False):
-        error_msg = result.get("error", "Unknown error occurred")
-        return render_template("error.html", error=error_msg)
-    
-    return render_template(
-        "selftest.html",
-        accuracy=result["accuracy"],
-        cm=result["confusion_matrix"],
-        report=result["classification_report"],
-        target_names=result["target_names"],
+        ari=ari,
+        plot_url=plot_url,
         cancer_type="Breast",
-        cross_val_mean=result.get("cross_val_mean", 0),
-        cross_val_std=result.get("cross_val_std", 0)
+        n_clusters=2,
+        silhouette_score=silhouette
     )
 
-@app.route("/lung/selftest")
-def lung_selftest_page():
-    """Run self-test for lung cancer model"""
-    result = perform_self_test("lung")
+@app.route("/clustering_lc")
+def clustering_lc():
+    """Clustering visualization for Lung Cancer"""
+    labels = kmeans_lung.predict(X_scaled_lung)
+    ari = adjusted_rand_score(y_lung_sim, labels)
+    silhouette = silhouette_score(X_scaled_lung, labels)
     
-    if not result.get("success", False):
-        error_msg = result.get("error", "Unknown error occurred")
-        return render_template("error.html", error=error_msg)
+    # Create visualization
+    plot_url = create_clustering_plot(X_scaled_lung, labels, y_lung_sim, "Lung Cancer")
     
     return render_template(
-        "selftest.html",
-        accuracy=result["accuracy"],
-        cm=result["confusion_matrix"],
-        report=result["classification_report"],
-        target_names=result["target_names"],
+        "clustering.html",
+        ari=ari,
+        plot_url=plot_url,
         cancer_type="Lung",
-        cross_val_mean=result.get("cross_val_mean", 0),
-        cross_val_std=result.get("cross_val_std", 0)
+        n_clusters=3,
+        silhouette_score=silhouette
     )
 
-@app.route("/prostate/selftest")
-def prostate_selftest_page():
-    """Run self-test for prostate cancer model"""
-    result = perform_self_test("prostate")
+@app.route("/clustering_pc")
+def clustering_pc():
+    """Clustering visualization for Prostate Cancer"""
+    labels = kmeans_prostate.predict(X_scaled_prostate)
+    ari = adjusted_rand_score(y_prostate_sim, labels)
+    silhouette = silhouette_score(X_scaled_prostate, labels)
     
-    if not result.get("success", False):
-        error_msg = result.get("error", "Unknown error occurred")
-        return render_template("error.html", error=error_msg)
+    # Create visualization
+    plot_url = create_clustering_plot(X_scaled_prostate, labels, y_prostate_sim, "Prostate Cancer")
     
     return render_template(
-        "selftest.html",
-        accuracy=result["accuracy"],
-        cm=result["confusion_matrix"],
-        report=result["classification_report"],
-        target_names=result["target_names"],
+        "clustering.html",
+        ari=ari,
+        plot_url=plot_url,
         cancer_type="Prostate",
-        cross_val_mean=result.get("cross_val_mean", 0),
-        cross_val_std=result.get("cross_val_std", 0)
+        n_clusters=2,
+        silhouette_score=silhouette
     )
-
-# ==================================================
-# SIMPLE SELF-TEST ROUTE (for direct access)
-# ==================================================
-@app.route("/selftest/<data_type>")
-def direct_selftest(data_type):
-    """Direct self-test route"""
-    if data_type == "breast":
-        return breast_selftest_page()
-    elif data_type == "lung":
-        return lung_selftest_page()
-    elif data_type == "prostate":
-        return prostate_selftest_page()
-    else:
-        return render_template("error.html", error="Invalid cancer type")
 
 # ==================================================
 # API ROUTE
@@ -516,42 +446,6 @@ def api_predict_breast():
         return jsonify({"error": "Invalid request", "details": str(e)}), 500
 
 # ==================================================
-# ADDITIONAL API ROUTES FOR CLUSTERING AND SELF-TEST
-# ==================================================
-@app.route("/api/cluster/<data_type>", methods=["POST"])
-def api_cluster(data_type):
-    """API endpoint for clustering"""
-    try:
-        data = request.get_json()
-        n_clusters = data.get("n_clusters", 2)
-        result = perform_clustering(data_type, n_clusters)
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/selftest/<data_type>", methods=["GET"])
-def api_selftest(data_type):
-    """API endpoint for self-test"""
-    result = perform_self_test(data_type)
-    return jsonify(result)
-
-# ==================================================
-# ERROR PAGE
-# ==================================================
-@app.route("/error")
-def error_page():
-    error_msg = request.args.get("msg", "An error occurred")
-    return render_template("error.html", error=error_msg)
-
-@app.errorhandler(404)
-def page_not_found(e):
-    return render_template("error.html", error="Page not found"), 404
-
-@app.errorhandler(500)
-def internal_error(e):
-    return render_template("error.html", error="Internal server error"), 500
-
-# ==================================================
 # HEALTH CHECK
 # ==================================================
 @app.route("/health")
@@ -560,8 +454,8 @@ def health_check():
         "status": "healthy",
         "models": ["breast", "lung", "prostate"],
         "endpoints": {
-            "clustering": "/breast/clustering, /lung/clustering, /prostate/clustering",
-            "self_test": "/breast/selftest, /lung/selftest, /prostate/selftest"
+            "self_test": "/selftest_bc, /selftest_lc, /selftest_pc",
+            "clustering": "/clustering_bc, /clustering_lc, /clustering_pc"
         }
     })
 
@@ -569,5 +463,12 @@ def health_check():
 # RUN APP
 # ==================================================
 if __name__ == "__main__":
+    print("🚀 SmartOnco System Started")
+    print("✅ Breast Cancer: Model loaded")
+    print("✅ Lung Cancer: Simulated data ready")
+    print("✅ Prostate Cancer: Simulated data ready")
+    print("✅ Clustering: Available at /clustering_bc, /clustering_lc, /clustering_pc")
+    print("✅ Self-Test: Available at /selftest_bc, /selftest_lc, /selftest_pc")
+    
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
