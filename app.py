@@ -147,11 +147,10 @@ def format_result(prediction, risk):
         recommendation = "Seek professional medical consultation for confirmation."
     else:
         recommendation = "Routine medical checkups are advised."
-    result = f"Prediction: {prediction}, Risk Level: {risk}, Recommendation: {recommendation}"
-    return result
+    return f"Prediction: {prediction}, Risk Level: {risk}, Recommendation: {recommendation}"
 
 # ==================================================
-# Gemini AI Explanation (Latest SDK)
+# Gemini AI Explanation
 # ==================================================
 def generate_gemini_explanation(prediction_text):
     """
@@ -160,12 +159,10 @@ def generate_gemini_explanation(prediction_text):
     if not GENAI_KEY:
         return "Gemini AI key not set. Explanation unavailable."
 
-    prompt = f"Explain this medical result to a patient in simple terms:\n{prediction_text}"
-
     try:
         response = client.chat(
             model="chat-bison-001",
-            input=prompt
+            input=prediction_text
         )
         return response.output_text
     except Exception as e:
@@ -209,9 +206,8 @@ def predict_bc():
     )
 
 # ==================================================
-# Keep all other routes exactly the same (lung, prostate, clustering, self-test, API, health)
+# KEEP OTHER ROUTES (lung, prostate, clustering, self-test, API, health) – Add them as needed
 # ==================================================
-# Copy your previous lung/prostate/selftest/clustering/api/health routes here
 
 # ==================================================
 # RUN APP
