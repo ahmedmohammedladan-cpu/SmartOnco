@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_breast_cancer
@@ -14,9 +14,9 @@ import base64
 import os
 
 # =========================
-# Gemini AI Import
+# Gemini AI Import (new official SDK)
 # =========================
-import google.generativeai as genai
+from google import genai
 
 # =========================
 # Initialize Flask
@@ -24,9 +24,9 @@ import google.generativeai as genai
 app = Flask(__name__)
 
 # =========================
-# Set your Gemini API Key (from Render Environment)
+# Initialize Gemini AI Client
 # =========================
-genai.api_key = os.environ.get("GENAI_API_KEY", "")
+client = genai.Client(api_key=os.environ.get("GENAI_API_KEY", ""))
 
 # ==================================================
 # BREAST CANCER MODEL
@@ -146,28 +146,21 @@ def format_result(prediction, risk):
         recommendation = "Seek professional medical consultation for confirmation."
     else:
         recommendation = "Routine medical checkups are advised."
-    result = f"Prediction: {prediction}, Risk Level: {risk}, Recommendation: {recommendation}"
-    return result
+    return f"Prediction: {prediction}, Risk Level: {risk}, Recommendation: {recommendation}"
 
 # ==================================================
-# Gemini AI Explanation (Fixed for latest SDK)
+# Gemini AI Explanation (Using new SDK)
 # ==================================================
 def generate_gemini_explanation(prediction_text):
-    if not genai.api_key:
+    if not client.api_key:
         return "Gemini AI key not set. Explanation unavailable."
 
-    prompt = f"Explain this medical result to a patient in simple terms:\n{prediction_text}"
-
     try:
-        # Latest SDK: use genai.chat.create
-        response = genai.chat.create(
-            model="chat-bison-001",
-            messages=[{"role": "user", "content": prompt}]
+        response = client.models.generate_content(
+            model="gemini-3-flash",
+            contents=f"Explain this medical result to a patient in simple terms:\n{prediction_text}"
         )
-        explanation = response.last
-        return explanation
-    except AttributeError:
-        return "Gemini AI SDK not correctly installed or outdated. Please update SDK."
+        return response.text
     except Exception as e:
         return f"Error generating explanation: {str(e)}"
 
@@ -207,11 +200,6 @@ def predict_bc():
         prediction_text=prediction_text,
         gemini_explanation=gemini_explanation
     )
-
-# ==================================================
-# Keep all other routes exactly the same (lung, prostate, clustering, self-test, API, health)
-# ==================================================
-# Copy previous lung/prostate/selftest/clustering/api/health routes here without change
 
 # ==================================================
 # RUN APP
