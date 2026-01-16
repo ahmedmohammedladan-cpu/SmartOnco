@@ -9,7 +9,7 @@ from sklearn.preprocessing import StandardScaler
 import os
 
 # =========================
-# Gemini AI Import
+# Gemini AI Import - CORRECT
 # =========================
 import google.generativeai as genai
 
@@ -24,12 +24,18 @@ app = Flask(__name__)
 # Get API key from Render environment variable
 GENAI_API_KEY = os.environ.get("GENAI_API_KEY", "")
 
-# Configure Gemini
+# Configure Gemini if API key exists
 if GENAI_API_KEY:
-    genai.configure(api_key=GENAI_API_KEY)
-    print("Gemini API configured successfully")
+    try:
+        genai.configure(api_key=GENAI_API_KEY)
+        print("✅ Gemini API configured successfully")
+        GEMINI_ENABLED = True
+    except Exception as e:
+        print(f"⚠️ Gemini configuration failed: {e}")
+        GEMINI_ENABLED = False
 else:
-    print("Warning: GENAI_API_KEY environment variable not set")
+    print("⚠️ GENAI_API_KEY environment variable not set")
+    GEMINI_ENABLED = False
 
 # ==================================================
 # BREAST CANCER MODEL
@@ -93,16 +99,13 @@ def generate_fallback_explanation(prediction_text):
     """Generate explanation when Gemini is unavailable"""
     if "Malignant" in prediction_text:
         if "High" in prediction_text:
-            return "🚨 **High Risk Alert**: This indicates a strong likelihood of cancer cells. Immediate consultation with an oncologist is crucial. They will likely recommend further tests like biopsy, MRI, or additional imaging to confirm and determine the exact type and stage."
+            return "🚨 **High Risk Alert**: Immediate consultation with an oncologist is crucial for further testing and treatment planning."
         elif "Moderate" in prediction_text:
-            return "⚠️ **Moderate Risk**: This suggests possible cancer cells that require medical attention. Schedule an appointment with an oncologist for further evaluation. Additional testing may be needed to confirm the diagnosis and plan appropriate treatment."
+            return "⚠️ **Moderate Risk**: Schedule an appointment with an oncologist for further evaluation and appropriate next steps."
         else:
-            return "🔍 **Further Evaluation Needed**: This result suggests cancer cells may be present. An oncologist can provide comprehensive evaluation, discuss treatment options, and create a personalized care plan."
+            return "🔍 **Medical Consultation Needed**: Further evaluation by a healthcare professional is recommended."
     else:
-        if "Low" in prediction_text:
-            return "✅ **Low Risk - Benign**: This indicates non-cancerous characteristics. Continue with regular screenings as recommended by your doctor. Maintain breast health through monthly self-exams and annual clinical checkups."
-        else:
-            return "✅ **Benign Result**: The analysis shows no cancer cells detected. Continue with routine medical checkups. Regular monitoring is key to maintaining breast health."
+        return "✅ **Benign Result**: Continue with routine medical checkups as advised by your doctor."
 
 # ==================================================
 # Gemini AI Explanation
@@ -111,48 +114,23 @@ def generate_gemini_explanation(prediction_text):
     """
     Generates patient-friendly explanation using Gemini AI
     """
-    if not GENAI_API_KEY:
-        return "🔧 **Setup Required**: Gemini API key not configured. " + generate_fallback_explanation(prediction_text)
+    if not GEMINI_ENABLED:
+        return generate_fallback_explanation(prediction_text)
     
-    prompt = f"""You are a compassionate medical assistant. Explain this breast cancer screening result to a patient in simple, clear, and reassuring language:
+    prompt = f"""Explain this breast cancer result in simple, compassionate terms:
 
-RESULT: {prediction_text}
+{prediction_text}
 
-Please provide:
-1. A simple explanation of what this means
-2. What the risk level indicates
-3. Why the recommendation is given
-4. Next steps in plain language
-5. A reassuring, hopeful tone
-
-Keep it under 150 words, avoid medical jargon, and be empathetic."""
-
+Keep response under 100 words, use simple language."""
+    
     try:
-        # Use gemini-1.5-flash-latest for latest model
         model = genai.GenerativeModel('gemini-1.5-flash')
-        response = model.generate_content(
-            prompt,
-            generation_config=genai.types.GenerationConfig(
-                temperature=0.7,
-                top_p=0.8,
-                max_output_tokens=200,
-            )
-        )
+        response = model.generate_content(prompt)
         return response.text
         
     except Exception as e:
-        error_msg = str(e)
-        print(f"Gemini API Error: {error_msg}")  # This will appear in Render logs
-        
-        # Check for specific error types
-        if "quota" in error_msg.lower():
-            return "📊 **API Limit**: Gemini API quota exceeded. " + generate_fallback_explanation(prediction_text)
-        elif "permission" in error_msg.lower() or "403" in error_msg:
-            return "⚠️ **API Access Issue**: Please verify Generative Language API is enabled in Google Cloud Console. " + generate_fallback_explanation(prediction_text)
-        elif "429" in error_msg or "rate limit" in error_msg.lower():
-            return "⏳ **Rate Limited**: Too many requests. Please try again in a moment. " + generate_fallback_explanation(prediction_text)
-        else:
-            return "🤖 **AI Service Temporarily Unavailable**: " + generate_fallback_explanation(prediction_text)
+        print(f"Gemini API Error: {e}")
+        return generate_fallback_explanation(prediction_text)
 
 # ==================================================
 # WEB ROUTES
@@ -200,16 +178,16 @@ def predict_bc():
             features_bc=selected_features_bc,
             demo_values_bc=demo_values_bc,
             prediction_text="Error: Please enter valid numeric values for all features.",
-            gemini_explanation="All input fields must contain numbers. Please check your entries and try again."
+            gemini_explanation="All input fields must contain numbers."
         )
     except Exception as e:
-        app.logger.error(f"Prediction error: {str(e)}")
+        print(f"Error: {e}")
         return render_template(
             "index.html",
             features_bc=selected_features_bc,
             demo_values_bc=demo_values_bc,
-            prediction_text="An unexpected error occurred. Please try again.",
-            gemini_explanation="System error. Please ensure all inputs are correctly filled and try again."
+            prediction_text="An unexpected error occurred.",
+            gemini_explanation="Please try again."
         )
 
 # ==================================================
@@ -217,4 +195,4 @@ def predict_bc():
 # ==================================================
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=port, debug=False)  # debug=False for production
