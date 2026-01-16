@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_breast_cancer
@@ -6,17 +6,12 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-import matplotlib
-matplotlib.use('Agg')
-import matplotlib.pyplot as plt
-import io
-import base64
 import os
 
 # =========================
-# Gemini AI Import (Latest SDK)
+# Gemini AI Import
 # =========================
-from google.genai import GenAiClient
+from google.genai import Client  # Latest SDK
 
 # =========================
 # Initialize Flask
@@ -27,7 +22,7 @@ app = Flask(__name__)
 # Gemini AI Client Setup
 # =========================
 GENAI_KEY = os.environ.get("GENAI_API_KEY", "")
-client = GenAiClient(api_key=GENAI_KEY)
+client = Client(api_key=GENAI_KEY)
 
 # ==================================================
 # BREAST CANCER MODEL
@@ -59,40 +54,6 @@ kmeans_bc = KMeans(n_clusters=2, random_state=42, n_init=10)
 kmeans_bc.fit(X_scaled_bc)
 
 # ==================================================
-# SIMULATED DATA FOR LUNG AND PROSTATE
-# ==================================================
-np.random.seed(42)
-n_samples = 300
-
-# Lung cancer simulation
-X_lung_sim = np.random.randn(n_samples, 15)
-X_lung_sim[:, 1] += np.random.randn(n_samples) * 0.5
-X_lung_sim[:, 2] += np.random.randn(n_samples) * 0.5
-X_lung_sim[:, 11] += np.random.randn(n_samples) * 0.5
-X_lung_sim[:, 14] += np.random.randn(n_samples) * 0.5
-y_lung_sim = np.zeros(n_samples, dtype=int)
-score = X_lung_sim[:, 1] + X_lung_sim[:, 2] * 1.5 + X_lung_sim[:, 11] + X_lung_sim[:, 14]
-y_lung_sim[score > 1] = 1
-y_lung_sim[score > 2.5] = 2
-
-# Prostate cancer simulation
-X_prostate_sim = np.random.randn(n_samples, 10)
-X_prostate_sim[:, 1] += np.random.randn(n_samples) * 0.5
-X_prostate_sim[:, 2] += np.random.randn(n_samples) * 0.5
-y_prostate_sim = ((X_prostate_sim[:, 1] > 0.5) | (X_prostate_sim[:, 2] > 0.7)).astype(int)
-
-# Initialize clustering for lung and prostate
-scaler_lung = StandardScaler()
-X_scaled_lung = scaler_lung.fit_transform(X_lung_sim)
-kmeans_lung = KMeans(n_clusters=3, random_state=42, n_init=10)
-kmeans_lung.fit(X_scaled_lung)
-
-scaler_prostate = StandardScaler()
-X_scaled_prostate = scaler_prostate.fit_transform(X_prostate_sim)
-kmeans_prostate = KMeans(n_clusters=2, random_state=42, n_init=10)
-kmeans_prostate.fit(X_scaled_prostate)
-
-# ==================================================
 # MANUAL RULES – BREAST CANCER
 # ==================================================
 def predict_breast_manual(features):
@@ -102,49 +63,18 @@ def predict_breast_manual(features):
 
     if worst_radius > 18 or worst_area > 1000:
         return "Malignant (Cancerous)", "High"
-
     if worst_radius > 14 and worst_concave_pts > 0.05:
         return "Malignant (Cancerous)", "Moderate"
-
     if worst_radius < 12 and worst_area < 500:
         return "Benign (Non-Cancerous)", "Low"
-
     return "ml_model", None
-
-# ==================================================
-# LUNG CANCER – MANUAL RULE SYSTEM
-# ==================================================
-def predict_lung_manual(features):
-    age = int(features[1])
-    smoking = int(features[2])
-    coughing = int(features[11])
-    chest_pain = int(features[14])
-
-    risk_score = 0
-    if age > 60:
-        risk_score += 3
-    if smoking == 2:
-        risk_score += 4
-    if coughing == 2:
-        risk_score += 2
-    if chest_pain == 2:
-        risk_score += 3
-
-    if risk_score >= 7:
-        return "Cancer Detected", "High"
-    elif risk_score >= 4:
-        return "Suspicious Findings", "Moderate"
-    else:
-        return "No Cancer Detected", "Low"
 
 # ==================================================
 # RESULT FORMATTING
 # ==================================================
 def format_result(prediction, risk):
-    if "Malignant" in prediction or "Cancer Detected" in prediction:
+    if "Malignant" in prediction:
         recommendation = "Consult a certified oncologist for further medical evaluation."
-    elif "Suspicious" in prediction:
-        recommendation = "Seek professional medical consultation for confirmation."
     else:
         recommendation = "Routine medical checkups are advised."
     return f"Prediction: {prediction}, Risk Level: {risk}, Recommendation: {recommendation}"
@@ -158,11 +88,13 @@ def generate_gemini_explanation(prediction_text):
     """
     if not GENAI_KEY:
         return "Gemini AI key not set. Explanation unavailable."
-
+    
+    prompt = f"Explain this medical result to a patient in simple terms:\n{prediction_text}"
+    
     try:
         response = client.chat(
             model="chat-bison-001",
-            input=prediction_text
+            input=prompt
         )
         return response.output_text
     except Exception as e:
@@ -206,13 +138,8 @@ def predict_bc():
     )
 
 # ==================================================
-# KEEP OTHER ROUTES (lung, prostate, clustering, self-test, API, health) – Add them as needed
-# ==================================================
-
-# ==================================================
 # RUN APP
 # ==================================================
 if __name__ == "__main__":
-    print("🚀 SmartOnco System Started")
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
