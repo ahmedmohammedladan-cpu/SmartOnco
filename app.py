@@ -9,10 +9,9 @@ from sklearn.preprocessing import StandardScaler
 import os
 
 # =========================
-# Gemini AI Import (Latest SDK)
+# Gemini AI Import
 # =========================
-from google import genai
-from google.genai.types import GenerateContentConfig
+import google.generativeai as genai
 
 # =========================
 # Initialize Flask
@@ -20,10 +19,17 @@ from google.genai.types import GenerateContentConfig
 app = Flask(__name__)
 
 # =========================
-# Gemini AI Client Setup
+# Gemini AI Configuration
 # =========================
-GENAI_KEY = os.environ.get("GENAI_API_KEY", "")
-client = genai.Client(api_key=GENAI_KEY) if GENAI_KEY else None
+# Get API key from Render environment variable
+GENAI_API_KEY = os.environ.get("GENAI_API_KEY", "")
+
+# Configure Gemini
+if GENAI_API_KEY:
+    genai.configure(api_key=GENAI_API_KEY)
+    print("Gemini API configured successfully")
+else:
+    print("Warning: GENAI_API_KEY environment variable not set")
 
 # ==================================================
 # BREAST CANCER MODEL
@@ -81,30 +87,72 @@ def format_result(prediction, risk):
     return f"Prediction: {prediction}, Risk Level: {risk}, Recommendation: {recommendation}"
 
 # ==================================================
+# Fallback Explanation
+# ==================================================
+def generate_fallback_explanation(prediction_text):
+    """Generate explanation when Gemini is unavailable"""
+    if "Malignant" in prediction_text:
+        if "High" in prediction_text:
+            return "🚨 **High Risk Alert**: This indicates a strong likelihood of cancer cells. Immediate consultation with an oncologist is crucial. They will likely recommend further tests like biopsy, MRI, or additional imaging to confirm and determine the exact type and stage."
+        elif "Moderate" in prediction_text:
+            return "⚠️ **Moderate Risk**: This suggests possible cancer cells that require medical attention. Schedule an appointment with an oncologist for further evaluation. Additional testing may be needed to confirm the diagnosis and plan appropriate treatment."
+        else:
+            return "🔍 **Further Evaluation Needed**: This result suggests cancer cells may be present. An oncologist can provide comprehensive evaluation, discuss treatment options, and create a personalized care plan."
+    else:
+        if "Low" in prediction_text:
+            return "✅ **Low Risk - Benign**: This indicates non-cancerous characteristics. Continue with regular screenings as recommended by your doctor. Maintain breast health through monthly self-exams and annual clinical checkups."
+        else:
+            return "✅ **Benign Result**: The analysis shows no cancer cells detected. Continue with routine medical checkups. Regular monitoring is key to maintaining breast health."
+
+# ==================================================
 # Gemini AI Explanation
 # ==================================================
 def generate_gemini_explanation(prediction_text):
     """
     Generates patient-friendly explanation using Gemini AI
     """
-    if not GENAI_KEY or client is None:
-        return "Gemini AI key not set. Explanation unavailable."
+    if not GENAI_API_KEY:
+        return "🔧 **Setup Required**: Gemini API key not configured. " + generate_fallback_explanation(prediction_text)
     
-    prompt = f"Explain this medical result to a patient in simple terms:\n{prediction_text}"
-    
+    prompt = f"""You are a compassionate medical assistant. Explain this breast cancer screening result to a patient in simple, clear, and reassuring language:
+
+RESULT: {prediction_text}
+
+Please provide:
+1. A simple explanation of what this means
+2. What the risk level indicates
+3. Why the recommendation is given
+4. Next steps in plain language
+5. A reassuring, hopeful tone
+
+Keep it under 150 words, avoid medical jargon, and be empathetic."""
+
     try:
-        response = client.models.generate_content(
-            model="gemini-1.5-flash",
-            contents=prompt,
-            config=GenerateContentConfig(
+        # Use gemini-1.5-flash-latest for latest model
+        model = genai.GenerativeModel('gemini-1.5-flash')
+        response = model.generate_content(
+            prompt,
+            generation_config=genai.types.GenerationConfig(
                 temperature=0.7,
-                top_p=0.9,
-                max_output_tokens=400,
+                top_p=0.8,
+                max_output_tokens=200,
             )
         )
         return response.text
+        
     except Exception as e:
-        return f"Error generating explanation: {str(e)}"
+        error_msg = str(e)
+        print(f"Gemini API Error: {error_msg}")  # This will appear in Render logs
+        
+        # Check for specific error types
+        if "quota" in error_msg.lower():
+            return "📊 **API Limit**: Gemini API quota exceeded. " + generate_fallback_explanation(prediction_text)
+        elif "permission" in error_msg.lower() or "403" in error_msg:
+            return "⚠️ **API Access Issue**: Please verify Generative Language API is enabled in Google Cloud Console. " + generate_fallback_explanation(prediction_text)
+        elif "429" in error_msg or "rate limit" in error_msg.lower():
+            return "⏳ **Rate Limited**: Too many requests. Please try again in a moment. " + generate_fallback_explanation(prediction_text)
+        else:
+            return "🤖 **AI Service Temporarily Unavailable**: " + generate_fallback_explanation(prediction_text)
 
 # ==================================================
 # WEB ROUTES
