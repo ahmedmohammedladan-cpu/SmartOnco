@@ -6,7 +6,6 @@ from sklearn.model_selection import train_test_split
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.cluster import KMeans
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, classification_report, confusion_matrix, adjusted_rand_score, silhouette_score
 import matplotlib
 matplotlib.use('Agg')
 import matplotlib.pyplot as plt
@@ -28,7 +27,7 @@ app = Flask(__name__)
 # Set your Gemini API Key
 # =========================
 # Make sure to set this as an environment variable in Render:
-# GENAI_API_KEY = <AIzaSyAVTSF09-QfW82ssnvK1y5d0hdoa2Rk_fc>
+# GENAI_API_KEY = <your_key>
 genai.api_key = os.environ.get("GENAI_API_KEY", "")
 
 # ==================================================
@@ -153,7 +152,7 @@ def format_result(prediction, risk):
     return result
 
 # ==================================================
-# Gemini AI Explanation
+# Gemini AI Explanation (Fixed)
 # ==================================================
 def generate_gemini_explanation(prediction_text):
     """
@@ -165,11 +164,11 @@ def generate_gemini_explanation(prediction_text):
     prompt = f"Explain this medical result to a patient in simple terms:\n{prediction_text}"
     
     try:
-        response = genai.chat.create(
+        response = genai.ChatCompletion.create(
             model="chat-bison-001",
             messages=[{"role": "user", "content": prompt}]
         )
-        explanation = response.last
+        explanation = response.choices[0].message.content
         return explanation
     except Exception as e:
         return f"Error generating explanation: {str(e)}"
@@ -214,7 +213,7 @@ def predict_bc():
 # ==================================================
 # Keep all other routes exactly the same (lung, prostate, clustering, self-test, API, health)
 # ==================================================
-# You can copy all your previous lung/prostate/selftest/clustering/api/health routes here without change
+# Copy all previous lung/prostate/selftest/clustering/api/health routes here without change
 
 # ==================================================
 # RUN APP
@@ -223,4 +222,3 @@ if __name__ == "__main__":
     print("🚀 SmartOnco System Started")
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
