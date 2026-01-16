@@ -152,7 +152,7 @@ def format_result(prediction, risk):
     return result
 
 # ==================================================
-# Gemini AI Explanation (Fixed)
+# Gemini AI Explanation (Fixed for latest SDK)
 # ==================================================
 def generate_gemini_explanation(prediction_text):
     """
@@ -162,13 +162,14 @@ def generate_gemini_explanation(prediction_text):
         return "Gemini AI key not set. Explanation unavailable."
 
     prompt = f"Explain this medical result to a patient in simple terms:\n{prediction_text}"
-    
+
     try:
-        response = genai.ChatCompletion.create(
+        response = genai.chat.create(
             model="chat-bison-001",
             messages=[{"role": "user", "content": prompt}]
         )
-        explanation = response.choices[0].message.content
+        # response.last contains the text string
+        explanation = response.last
         return explanation
     except Exception as e:
         return f"Error generating explanation: {str(e)}"
@@ -222,3 +223,4 @@ if __name__ == "__main__":
     print("🚀 SmartOnco System Started")
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
