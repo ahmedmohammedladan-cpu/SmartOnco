@@ -26,7 +26,7 @@ app = Flask(__name__)
 # =========================
 GENAI_API_KEY = os.environ.get("GENAI_API_KEY", "")
 
-if GENAI_AVAILABLE and GENAI_API_KEY:
+if GEMINI_AVAILABLE and GENAI_API_KEY:
     try:
         genai.configure(api_key=GENAI_API_KEY)
         GEMINI_ENABLED = True
