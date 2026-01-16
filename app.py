@@ -24,10 +24,8 @@ import google.generativeai as genai
 app = Flask(__name__)
 
 # =========================
-# Set your Gemini API Key
+# Set your Gemini API Key (from Render Environment)
 # =========================
-# Make sure to set this as an environment variable in Render:
-# GENAI_API_KEY = <your_key>
 genai.api_key = os.environ.get("GENAI_API_KEY", "")
 
 # ==================================================
@@ -155,22 +153,21 @@ def format_result(prediction, risk):
 # Gemini AI Explanation (Fixed for latest SDK)
 # ==================================================
 def generate_gemini_explanation(prediction_text):
-    """
-    Generates patient-friendly explanation using Gemini AI
-    """
     if not genai.api_key:
         return "Gemini AI key not set. Explanation unavailable."
 
     prompt = f"Explain this medical result to a patient in simple terms:\n{prediction_text}"
 
     try:
+        # Latest SDK: use genai.chat.create
         response = genai.chat.create(
             model="chat-bison-001",
             messages=[{"role": "user", "content": prompt}]
         )
-        # response.last contains the text string
         explanation = response.last
         return explanation
+    except AttributeError:
+        return "Gemini AI SDK not correctly installed or outdated. Please update SDK."
     except Exception as e:
         return f"Error generating explanation: {str(e)}"
 
@@ -214,7 +211,7 @@ def predict_bc():
 # ==================================================
 # Keep all other routes exactly the same (lung, prostate, clustering, self-test, API, health)
 # ==================================================
-# Copy all previous lung/prostate/selftest/clustering/api/health routes here without change
+# Copy previous lung/prostate/selftest/clustering/api/health routes here without change
 
 # ==================================================
 # RUN APP
@@ -223,4 +220,3 @@ if __name__ == "__main__":
     print("🚀 SmartOnco System Started")
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
-
