@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import numpy as np
 import pandas as pd
 from sklearn.datasets import load_breast_cancer
@@ -14,9 +14,9 @@ import base64
 import os
 
 # =========================
-# Gemini AI Import (new official SDK)
+# Gemini AI Import (Latest SDK)
 # =========================
-from google import genai
+from google.genai import GenAiClient
 
 # =========================
 # Initialize Flask
@@ -24,9 +24,10 @@ from google import genai
 app = Flask(__name__)
 
 # =========================
-# Initialize Gemini AI Client
+# Gemini AI Client Setup
 # =========================
-client = genai.Client(api_key=os.environ.get("GENAI_API_KEY", ""))
+GENAI_KEY = os.environ.get("GENAI_API_KEY", "")
+client = GenAiClient(api_key=GENAI_KEY)
 
 # ==================================================
 # BREAST CANCER MODEL
@@ -146,21 +147,27 @@ def format_result(prediction, risk):
         recommendation = "Seek professional medical consultation for confirmation."
     else:
         recommendation = "Routine medical checkups are advised."
-    return f"Prediction: {prediction}, Risk Level: {risk}, Recommendation: {recommendation}"
+    result = f"Prediction: {prediction}, Risk Level: {risk}, Recommendation: {recommendation}"
+    return result
 
 # ==================================================
-# Gemini AI Explanation (Using new SDK)
+# Gemini AI Explanation (Latest SDK)
 # ==================================================
 def generate_gemini_explanation(prediction_text):
-    if not client.api_key:
+    """
+    Generates patient-friendly explanation using Gemini AI
+    """
+    if not GENAI_KEY:
         return "Gemini AI key not set. Explanation unavailable."
 
+    prompt = f"Explain this medical result to a patient in simple terms:\n{prediction_text}"
+
     try:
-        response = client.models.generate_content(
-            model="gemini-3-flash",
-            contents=f"Explain this medical result to a patient in simple terms:\n{prediction_text}"
+        response = client.chat(
+            model="chat-bison-001",
+            input=prompt
         )
-        return response.text
+        return response.output_text
     except Exception as e:
         return f"Error generating explanation: {str(e)}"
 
@@ -200,6 +207,11 @@ def predict_bc():
         prediction_text=prediction_text,
         gemini_explanation=gemini_explanation
     )
+
+# ==================================================
+# Keep all other routes exactly the same (lung, prostate, clustering, self-test, API, health)
+# ==================================================
+# Copy your previous lung/prostate/selftest/clustering/api/health routes here
 
 # ==================================================
 # RUN APP
