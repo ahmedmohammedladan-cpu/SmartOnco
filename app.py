@@ -28,7 +28,7 @@ app = Flask(__name__)
 # Set your Gemini API Key
 # =========================
 # Make sure to set this as an environment variable in Render:
-# GENAI_API_KEY = <your_key>
+# GENAI_API_KEY = <AIzaSyAVTSF09-QfW82ssnvK1y5d0hdoa2Rk_fc>
 genai.api_key = os.environ.get("GENAI_API_KEY", "")
 
 # ==================================================
@@ -223,3 +223,4 @@ if __name__ == "__main__":
     print("🚀 SmartOnco System Started")
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=True)
+
