@@ -25,15 +25,23 @@
       <p class="text-muted">Enter the survey/test values to predict lung cancer risk.</p>
 
       {% if prediction_text %}
-        {% if "Low risk" in prediction_text %}
+        {% if "Low" in prediction_text %}
           <div class="alert alert-success fs-5">{{ prediction_text }}</div>
-        {% elif "Moderate risk" in prediction_text %}
+        {% elif "Moderate" in prediction_text %}
           <div class="alert alert-warning fs-5">{{ prediction_text }}</div>
-        {% elif "High risk" in prediction_text %}
+        {% elif "High" in prediction_text %}
           <div class="alert alert-danger fs-5">{{ prediction_text }}</div>
         {% else %}
           <div class="alert alert-info fs-5">{{ prediction_text }}</div>
         {% endif %}
+      {% endif %}
+
+      <!-- ✅ ADD THIS SECTION FOR GEMINI EXPLANATION -->
+      {% if gemini_explanation %}
+        <div class="alert alert-secondary fs-6 mt-3">
+          <strong>Gemini AI Explanation:</strong>
+          <p>{{ gemini_explanation }}</p>
+        </div>
       {% endif %}
 
       <form method="POST" action="/predict_lc">
